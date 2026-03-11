@@ -1,10 +1,20 @@
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../stores/useGameStore';
-import { WEAPONS } from '../data/weapons';
+import { WEAPONS, EVOLVED_WEAPON_IDS } from '../data/weapons';
+import { ITEMS } from '../data/items';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function abbreviate(name: string): string {
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0]!.slice(0, 3) + parts[1]!.charAt(0)).toUpperCase();
+  }
+  return name.slice(0, 4).toUpperCase();
 }
 
 export default function HUD() {
@@ -17,6 +27,30 @@ export default function HUD() {
   const elapsedTime = useGameStore((s) => s.elapsedTime);
   const killCount = useGameStore((s) => s.killCount);
   const weapons = useGameStore((s) => s.weapons);
+  const items = useGameStore((s) => s.items);
+
+  const [evolutionMsg, setEvolutionMsg] = useState<string | null>(null);
+  const prevEvolvedIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentEvolvedIds = new Set(
+      weapons
+        .map((w) => w.definitionId)
+        .filter((id) => EVOLVED_WEAPON_IDS.includes(id))
+    );
+
+    for (const id of currentEvolvedIds) {
+      if (!prevEvolvedIdsRef.current.has(id)) {
+        const def = WEAPONS[id];
+        setEvolutionMsg(`EVOLVED: ${def?.name ?? id}!`);
+        const timer = setTimeout(() => setEvolutionMsg(null), 3000);
+        prevEvolvedIdsRef.current = currentEvolvedIds;
+        return () => clearTimeout(timer);
+      }
+    }
+
+    prevEvolvedIdsRef.current = currentEvolvedIds;
+  }, [weapons]);
 
   if (phase !== 'playing' && phase !== 'levelup') return null;
 
@@ -114,11 +148,34 @@ export default function HUD() {
         KILLS: {killCount}
       </div>
 
+      {/* Evolution notification banner */}
+      {evolutionMsg && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 60,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: '#ffd700',
+            fontSize: 24,
+            fontWeight: 'bold',
+            textShadow: '0 0 10px #ffd700, 0 0 20px #ffd700',
+            background: 'rgba(0, 0, 0, 0.8)',
+            border: '2px solid #ffd700',
+            borderRadius: 8,
+            padding: '8px 24px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {evolutionMsg}
+        </div>
+      )}
+
       {/* Bottom-left: Weapons */}
       <div
         style={{
           position: 'absolute',
-          bottom: 16,
+          bottom: 48,
           left: 16,
           display: 'flex',
           flexDirection: 'row',
@@ -146,6 +203,42 @@ export default function HUD() {
           );
         })}
       </div>
+
+      {/* Bottom-left: Passive Items (below weapons) */}
+      {items.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 8,
+          }}
+        >
+          {items.map((item) => {
+            const def = ITEMS[item.definitionId];
+            const abbr = def ? abbreviate(def.name) : item.definitionId.slice(0, 4).toUpperCase();
+            return (
+              <div
+                key={item.definitionId}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.7)',
+                  border: '1px solid #ff00ff',
+                  borderRadius: 4,
+                  padding: '4px 8px',
+                  color: '#ff00ff',
+                  fontSize: 11,
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {abbr} {item.level}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
