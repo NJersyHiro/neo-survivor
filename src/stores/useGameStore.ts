@@ -3,12 +3,14 @@ import type {
   GamePhase,
   PlayerState,
   WeaponInstance,
+  ItemInstance,
   EnemyInstance,
   ProjectileInstance,
   XPGemInstance,
   LevelUpOption,
 } from '../types';
 import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
+import { ITEMS, ALL_ITEM_IDS } from '../data/items';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -34,10 +36,15 @@ interface GameState {
   killCount: number;
   player: PlayerState;
   weapons: WeaponInstance[];
+  items: ItemInstance[];
   enemies: EnemyInstance[];
   projectiles: ProjectileInstance[];
   xpGems: XPGemInstance[];
   levelUpOptions: LevelUpOption[];
+  rerollCount: number;
+  skipCount: number;
+  banishCount: number;
+  banishedIds: string[];
 
   reset: () => void;
   startRun: () => void;
@@ -46,6 +53,9 @@ interface GameState {
   addXP: (amount: number) => void;
   takeDamage: (amount: number) => void;
   selectLevelUpOption: (option: LevelUpOption) => void;
+  reroll: () => void;
+  skip: () => void;
+  banish: (id: string) => void;
   spawnEnemy: (enemy: EnemyInstance) => void;
   removeEnemy: (id: string) => void;
   damageEnemy: (id: string, damage: number) => void;
@@ -65,11 +75,17 @@ function shuffleArray<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-function generateLevelUpOptions(weapons: WeaponInstance[]): LevelUpOption[] {
+function generateLevelUpOptions(
+  weapons: WeaponInstance[],
+  items: ItemInstance[],
+  banishedIds: string[]
+): LevelUpOption[] {
   const options: LevelUpOption[] = [];
+  const banishedSet = new Set(banishedIds);
 
-  // Offer upgrades for owned weapons below max level
+  // Offer upgrades for owned weapons below max level (filter banished)
   for (const w of weapons) {
+    if (banishedSet.has(w.definitionId)) continue;
     const def = WEAPONS[w.definitionId];
     if (def && w.level < def.maxLevel) {
       options.push({
@@ -84,10 +100,37 @@ function generateLevelUpOptions(weapons: WeaponInstance[]): LevelUpOption[] {
   if (weapons.length < 6) {
     const ownedIds = new Set(weapons.map((w) => w.definitionId));
     for (const id of BASE_WEAPON_IDS) {
-      if (!ownedIds.has(id)) {
+      if (!ownedIds.has(id) && !banishedSet.has(id)) {
         options.push({
           type: 'new_weapon',
           weaponId: id,
+          level: 1,
+        });
+      }
+    }
+  }
+
+  // Offer upgrades for owned items below max level (filter banished)
+  for (const item of items) {
+    if (banishedSet.has(item.definitionId)) continue;
+    const def = ITEMS[item.definitionId];
+    if (def && item.level < def.maxLevel) {
+      options.push({
+        type: 'upgrade_item',
+        itemId: item.definitionId,
+        level: item.level + 1,
+      });
+    }
+  }
+
+  // Offer new items if slots < 6
+  if (items.length < 6) {
+    const ownedItemIds = new Set(items.map((i) => i.definitionId));
+    for (const id of ALL_ITEM_IDS) {
+      if (!ownedItemIds.has(id) && !banishedSet.has(id)) {
+        options.push({
+          type: 'new_item',
+          itemId: id,
           level: 1,
         });
       }
@@ -103,10 +146,15 @@ export const useGameStore = create<GameState>()((set) => ({
   killCount: 0,
   player: createInitialPlayer(),
   weapons: [],
+  items: [],
   enemies: [],
   projectiles: [],
   xpGems: [],
   levelUpOptions: [],
+  rerollCount: 3,
+  skipCount: 3,
+  banishCount: 3,
+  banishedIds: [],
 
   reset: () =>
     set({
@@ -115,10 +163,15 @@ export const useGameStore = create<GameState>()((set) => ({
       killCount: 0,
       player: createInitialPlayer(),
       weapons: [],
+      items: [],
       enemies: [],
       projectiles: [],
       xpGems: [],
       levelUpOptions: [],
+      rerollCount: 3,
+      skipCount: 3,
+      banishCount: 3,
+      banishedIds: [],
     }),
 
   startRun: () =>
@@ -128,10 +181,15 @@ export const useGameStore = create<GameState>()((set) => ({
       killCount: 0,
       player: createInitialPlayer(),
       weapons: [{ definitionId: STARTING_WEAPON_ID, level: 1 }],
+      items: [],
       enemies: [],
       projectiles: [],
       xpGems: [],
       levelUpOptions: [],
+      rerollCount: 3,
+      skipCount: 3,
+      banishCount: 3,
+      banishedIds: [],
     }),
 
   setPhase: (phase) => set({ phase }),
@@ -154,7 +212,7 @@ export const useGameStore = create<GameState>()((set) => ({
         player.xp -= player.xpToNextLevel;
         player.level += 1;
         player.xpToNextLevel = xpForLevel(player.level);
-        const options = generateLevelUpOptions(state.weapons);
+        const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds);
         return { player, phase: 'levelup', levelUpOptions: options };
       }
 
@@ -177,11 +235,22 @@ export const useGameStore = create<GameState>()((set) => ({
 
   selectLevelUpOption: (option) =>
     set((state) => {
+      if (option.type === 'new_item' && option.itemId) {
+        const items = [...state.items];
+        items.push({ definitionId: option.itemId, level: 1 });
+        return { items, phase: 'playing', levelUpOptions: [] };
+      } else if (option.type === 'upgrade_item' && option.itemId) {
+        const items = state.items.map((i) =>
+          i.definitionId === option.itemId ? { ...i, level: option.level } : i
+        );
+        return { items, phase: 'playing', levelUpOptions: [] };
+      }
+
       const weapons = [...state.weapons];
 
-      if (option.type === 'new_weapon') {
+      if (option.type === 'new_weapon' && option.weaponId) {
         weapons.push({ definitionId: option.weaponId, level: 1 });
-      } else {
+      } else if (option.type === 'upgrade_weapon' && option.weaponId) {
         const idx = weapons.findIndex((w) => w.definitionId === option.weaponId);
         if (idx !== -1) {
           weapons[idx] = { ...weapons[idx]!, level: option.level };
@@ -189,6 +258,28 @@ export const useGameStore = create<GameState>()((set) => ({
       }
 
       return { weapons, phase: 'playing', levelUpOptions: [] };
+    }),
+
+  reroll: () =>
+    set((state) => {
+      if (state.rerollCount <= 0 || state.phase !== 'levelup') return {};
+      const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds);
+      return { levelUpOptions: options, rerollCount: state.rerollCount - 1 };
+    }),
+
+  skip: () =>
+    set((state) => {
+      if (state.skipCount <= 0 || state.phase !== 'levelup') return {};
+      return { phase: 'playing', levelUpOptions: [], skipCount: state.skipCount - 1 };
+    }),
+
+  banish: (id) =>
+    set((state) => {
+      if (state.banishCount <= 0) return {};
+      return {
+        banishedIds: [...state.banishedIds, id],
+        banishCount: state.banishCount - 1,
+      };
     }),
 
   spawnEnemy: (enemy) =>

@@ -99,7 +99,8 @@ export interface ItemInstance {
 export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover';
 
 export interface LevelUpOption {
-  type: 'new_weapon' | 'upgrade_weapon';
-  weaponId: string;
+  type: 'new_weapon' | 'upgrade_weapon' | 'new_item' | 'upgrade_item';
+  weaponId?: string;
+  itemId?: string;
   level: number;
 }

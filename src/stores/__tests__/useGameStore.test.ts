@@ -128,6 +128,65 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().enemies[0]?.hp).toBe(15);
   });
 
+  it('startRun initializes items and tool counts', () => {
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.items).toEqual([]);
+    expect(state.rerollCount).toBe(3);
+    expect(state.skipCount).toBe(3);
+    expect(state.banishCount).toBe(3);
+    expect(state.banishedIds).toEqual([]);
+  });
+
+  it('selectLevelUpOption adds new item', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().selectLevelUpOption({
+      type: 'new_item', itemId: 'energy_cell', level: 1,
+    });
+    const state = useGameStore.getState();
+    expect(state.items).toHaveLength(1);
+    expect(state.items[0]?.definitionId).toBe('energy_cell');
+    expect(state.phase).toBe('playing');
+  });
+
+  it('selectLevelUpOption upgrades existing item', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().selectLevelUpOption({
+      type: 'new_item', itemId: 'energy_cell', level: 1,
+    });
+    useGameStore.getState().selectLevelUpOption({
+      type: 'upgrade_item', itemId: 'energy_cell', level: 2,
+    });
+    expect(useGameStore.getState().items[0]?.level).toBe(2);
+  });
+
+  it('skip resumes playing and decrements count', () => {
+    useGameStore.getState().startRun();
+    const xpNeeded = xpForLevel(1);
+    useGameStore.getState().addXP(xpNeeded);
+    expect(useGameStore.getState().phase).toBe('levelup');
+    useGameStore.getState().skip();
+    expect(useGameStore.getState().phase).toBe('playing');
+    expect(useGameStore.getState().skipCount).toBe(2);
+  });
+
+  it('reroll generates new options and decrements count', () => {
+    useGameStore.getState().startRun();
+    const xpNeeded = xpForLevel(1);
+    useGameStore.getState().addXP(xpNeeded);
+    expect(useGameStore.getState().phase).toBe('levelup');
+    useGameStore.getState().reroll();
+    expect(useGameStore.getState().rerollCount).toBe(2);
+    expect(useGameStore.getState().levelUpOptions.length).toBeGreaterThan(0);
+  });
+
+  it('banish adds ID to banished list', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().banish('neon_whip');
+    expect(useGameStore.getState().banishedIds).toContain('neon_whip');
+    expect(useGameStore.getState().banishCount).toBe(2);
+  });
+
   it('damageEnemy removes dead enemies and increments killCount', () => {
     useGameStore.getState().startRun();
     useGameStore.getState().spawnEnemy({
