@@ -7,7 +7,10 @@ import Enemies from './components/Enemies';
 import Projectiles from './components/Projectiles';
 import XPGemRenderer from './components/XPGems';
 import GameLoop from './components/GameLoop';
+import PostProcessing from './components/PostProcessing';
+import HUD from './ui/HUD';
 import LevelUpScreen from './ui/LevelUpScreen';
+import ResultsScreen from './ui/ResultsScreen';
 import { useGameStore } from './stores/useGameStore';
 
 function GameScene() {
@@ -22,6 +25,7 @@ function GameScene() {
       <Projectiles />
       <XPGemRenderer />
       <GameLoop />
+      <PostProcessing />
     </>
   );
 }
@@ -43,7 +47,9 @@ export default function App() {
       >
         <GameScene />
       </Canvas>
+      <HUD />
       <LevelUpScreen />
+      <ResultsScreen />
     </div>
   );
 }
