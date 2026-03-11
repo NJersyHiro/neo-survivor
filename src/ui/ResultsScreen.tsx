@@ -1,4 +1,5 @@
 import { useGameStore } from '../stores/useGameStore';
+import { useMetaStore } from '../stores/useMetaStore';
 import { WEAPONS } from '../data/weapons';
 
 function formatTime(seconds: number): string {
@@ -13,143 +14,102 @@ export default function ResultsScreen() {
   const killCount = useGameStore((s) => s.killCount);
   const level = useGameStore((s) => s.player.level);
   const weapons = useGameStore((s) => s.weapons);
-  const startRun = useGameStore((s) => s.startRun);
+  const creditsEarned = useGameStore((s) => s.creditsEarned);
 
   if (phase !== 'gameover') return null;
 
-  const survived = elapsedTime >= 300;
+  const survived = elapsedTime >= 900;
   const titleText = survived ? 'SYSTEM SURVIVED' : 'SYSTEM TERMINATED';
   const titleColor = survived ? '#00ff88' : '#ff3366';
+  const runEndBonus = Math.floor(50 + killCount * 0.5 + elapsedTime * 0.2);
+  const totalCredits = creditsEarned + runEndBonus;
+
+  const handleEnd = (action: 'retry' | 'menu') => {
+    useMetaStore.getState().recordRunStats(killCount, elapsedTime, totalCredits);
+    if (action === 'retry') {
+      useGameStore.getState().startRun();
+    } else {
+      useGameStore.getState().reset();
+    }
+  };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 200,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.85)',
-        fontFamily: "'Courier New', monospace",
-      }}
-    >
-      {/* Title */}
-      <div
-        style={{
-          color: titleColor,
-          fontSize: 40,
-          fontWeight: 'bold',
-          marginBottom: 16,
-          textShadow: `0 0 20px ${titleColor}, 0 0 40px ${titleColor}`,
-        }}
-      >
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', background: 'rgba(0, 0, 0, 0.85)',
+      fontFamily: "'Courier New', monospace",
+    }}>
+      <div style={{
+        color: titleColor, fontSize: 40, fontWeight: 'bold', marginBottom: 16,
+        textShadow: `0 0 20px ${titleColor}, 0 0 40px ${titleColor}`,
+      }}>
         {titleText}
       </div>
 
-      {/* Time survived */}
-      <div
-        style={{
-          color: '#00ffff',
-          fontSize: 22,
-          marginBottom: 32,
-        }}
-      >
+      <div style={{ color: '#00ffff', fontSize: 22, marginBottom: 32 }}>
         Time: {formatTime(elapsedTime)}
       </div>
 
-      {/* Stat boxes */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 32,
-          marginBottom: 32,
-        }}
-      >
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.6)',
-            border: '1px solid #ffff00',
-            borderRadius: 8,
-            padding: '16px 32px',
-            textAlign: 'center',
-          }}
-        >
+      <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.6)', border: '1px solid #ffff00',
+          borderRadius: 8, padding: '16px 32px', textAlign: 'center',
+        }}>
           <div style={{ color: '#aaa', fontSize: 14, marginBottom: 8 }}>KILLS</div>
-          <div style={{ color: '#ffff00', fontSize: 36, fontWeight: 'bold' }}>
-            {killCount}
-          </div>
+          <div style={{ color: '#ffff00', fontSize: 36, fontWeight: 'bold' }}>{killCount}</div>
         </div>
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.6)',
-            border: '1px solid #00ff88',
-            borderRadius: 8,
-            padding: '16px 32px',
-            textAlign: 'center',
-          }}
-        >
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.6)', border: '1px solid #00ff88',
+          borderRadius: 8, padding: '16px 32px', textAlign: 'center',
+        }}>
           <div style={{ color: '#aaa', fontSize: 14, marginBottom: 8 }}>LEVEL</div>
-          <div style={{ color: '#00ff88', fontSize: 36, fontWeight: 'bold' }}>
-            {level}
-          </div>
+          <div style={{ color: '#00ff88', fontSize: 36, fontWeight: 'bold' }}>{level}</div>
         </div>
       </div>
 
-      {/* Weapons list */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          marginBottom: 40,
-        }}
-      >
+      {/* Credits earned */}
+      <div style={{
+        color: '#ffff00', fontSize: 18, marginBottom: 32,
+        textShadow: '0 0 10px #ffff00',
+      }}>
+        +{totalCredits} CR (drops: {creditsEarned} + bonus: {runEndBonus})
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 40 }}>
         {weapons.map((w) => {
           const def = WEAPONS[w.definitionId];
           return (
-            <div
-              key={w.definitionId}
-              style={{
-                background: 'rgba(0, 0, 0, 0.6)',
-                border: '1px solid #00ffff',
-                borderRadius: 4,
-                padding: '8px 12px',
-                textAlign: 'center',
-                color: '#fff',
-                fontSize: 13,
-              }}
-            >
+            <div key={w.definitionId} style={{
+              background: 'rgba(0, 0, 0, 0.6)', border: '1px solid #00ffff',
+              borderRadius: 4, padding: '8px 12px', textAlign: 'center',
+              color: '#fff', fontSize: 13,
+            }}>
               <div>{def?.name ?? w.definitionId}</div>
-              <div style={{ color: '#00ff88', fontSize: 11, marginTop: 4 }}>
-                Lv {w.level}
-              </div>
+              <div style={{ color: '#00ff88', fontSize: 11, marginTop: 4 }}>Lv {w.level}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Retry button */}
-      <button
-        onClick={startRun}
-        style={{
-          background: '#00ffff',
-          color: '#000',
-          border: 'none',
-          borderRadius: 8,
-          padding: '12px 48px',
-          fontSize: 20,
-          fontWeight: 'bold',
-          fontFamily: "'Courier New', monospace",
-          cursor: 'pointer',
+      <div style={{ display: 'flex', gap: 16 }}>
+        <button onClick={() => handleEnd('retry')} style={{
+          background: '#00ffff', color: '#000', border: 'none', borderRadius: 8,
+          padding: '12px 48px', fontSize: 20, fontWeight: 'bold',
+          fontFamily: "'Courier New', monospace", cursor: 'pointer',
           boxShadow: '0 0 15px #00ffff, 0 0 30px #00ffff',
-        }}
-      >
-        RETRY
-      </button>
+        }}>
+          RETRY
+        </button>
+        <button onClick={() => handleEnd('menu')} style={{
+          background: 'transparent', color: '#00ffff',
+          border: '2px solid #00ffff', borderRadius: 8,
+          padding: '12px 48px', fontSize: 20, fontWeight: 'bold',
+          fontFamily: "'Courier New', monospace", cursor: 'pointer',
+        }}>
+          MENU
+        </button>
+      </div>
     </div>
   );
 }
