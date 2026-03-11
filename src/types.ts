@@ -29,6 +29,8 @@ export interface WeaponDefinition {
   amount: number;
   maxLevel: number;
   damagePerLevel: number;
+  evolutionItemId?: string;
+  evolvesInto?: string;
 }
 
 export interface WeaponInstance {
@@ -73,6 +75,25 @@ export interface XPGemInstance {
   id: string;
   position: Vec3;
   value: number;
+}
+
+export type StatKey =
+  | 'might' | 'armor' | 'maxHp' | 'recovery'
+  | 'speed' | 'area' | 'cooldown' | 'amount'
+  | 'moveSpeed' | 'magnet' | 'luck' | 'growth';
+
+export interface ItemDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: 'healing' | 'stat' | 'utility';
+  maxLevel: number;
+  stats: Partial<Record<StatKey, number>>;
+}
+
+export interface ItemInstance {
+  definitionId: string;
+  level: number;
 }
 
 export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover';

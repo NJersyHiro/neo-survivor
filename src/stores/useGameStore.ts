@@ -8,7 +8,7 @@ import type {
   XPGemInstance,
   LevelUpOption,
 } from '../types';
-import { WEAPONS, STARTING_WEAPON_ID, ALL_WEAPON_IDS } from '../data/weapons';
+import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -83,7 +83,7 @@ function generateLevelUpOptions(weapons: WeaponInstance[]): LevelUpOption[] {
   // Offer new weapons if slots < 6
   if (weapons.length < 6) {
     const ownedIds = new Set(weapons.map((w) => w.definitionId));
-    for (const id of ALL_WEAPON_IDS) {
+    for (const id of BASE_WEAPON_IDS) {
       if (!ownedIds.has(id)) {
         options.push({
           type: 'new_weapon',
