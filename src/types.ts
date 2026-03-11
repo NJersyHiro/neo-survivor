@@ -48,6 +48,8 @@ export interface EnemyDefinition {
   color: string;
   emissive: string;
   scale: number;
+  isBoss?: boolean;
+  bossScale?: number;
 }
 
 export interface EnemyInstance {

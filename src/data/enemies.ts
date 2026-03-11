@@ -12,6 +12,19 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     emissive: '#ff1144',
     scale: 0.5,
   },
+  sentinel: {
+    id: 'sentinel',
+    name: 'Sentinel',
+    hp: 500,
+    damage: 15,
+    speed: 1.5,
+    xpValue: 20,
+    color: '#ff8800',
+    emissive: '#ff6600',
+    scale: 1.2,
+    isBoss: true,
+    bossScale: 2.5,
+  },
 };
 
 export const SWARMER_ID = 'drone';

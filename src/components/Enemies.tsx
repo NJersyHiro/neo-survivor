@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { ENEMIES } from '../data/enemies';
 import { getSpawnCount, getSpawnPosition, SPAWN_INTERVAL } from '../game/WaveManager';
+import { shouldSpawnBoss } from '../game/BossManager';
 import { generateId, distance, directionTo } from '../utils/math';
 
 const MAX_INSTANCES = 300;
@@ -16,6 +17,7 @@ const tmpVec = new THREE.Vector3();
 export default function Enemies() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const spawnTimerRef = useRef(0);
+  const prevTimeRef = useRef(0);
 
   useFrame((_state, delta) => {
     const store = useGameStore.getState();
@@ -46,16 +48,33 @@ export default function Enemies() {
       }
     }
 
+    // --- Boss spawn logic ---
+    if (shouldSpawnBoss(store.elapsedTime, prevTimeRef.current)) {
+      const bossdef = ENEMIES.sentinel;
+      if (bossdef) {
+        const pos = getSpawnPosition(store.player.position);
+        store.spawnEnemy({
+          id: generateId(),
+          definitionId: 'sentinel',
+          position: pos,
+          hp: bossdef.hp,
+          maxHp: bossdef.hp,
+        });
+      }
+    }
+    prevTimeRef.current = store.elapsedTime;
+
     // --- Movement + contact damage ---
     const { enemies, player } = useGameStore.getState();
     for (const enemy of enemies) {
+      const enemyDef = ENEMIES[enemy.definitionId] ?? drone;
       const dir = directionTo(enemy.position, player.position);
-      enemy.position.x += dir.x * drone.speed * clampedDelta;
-      enemy.position.z += dir.z * drone.speed * clampedDelta;
+      enemy.position.x += dir.x * enemyDef.speed * clampedDelta;
+      enemy.position.z += dir.z * enemyDef.speed * clampedDelta;
 
       const dist = distance(enemy.position, player.position);
       if (dist < CONTACT_DISTANCE) {
-        store.takeDamage(drone.damage * clampedDelta);
+        store.takeDamage(enemyDef.damage * clampedDelta);
       }
     }
 
@@ -67,9 +86,11 @@ export default function Enemies() {
     for (let i = 0; i < MAX_INSTANCES; i++) {
       if (i < currentEnemies.length) {
         const e = currentEnemies[i]!;
-        tmpVec.set(e.position.x, e.position.y + drone.scale * 0.5, e.position.z);
+        const enemyDef = ENEMIES[e.definitionId];
+        const scale = enemyDef?.isBoss ? (enemyDef.bossScale ?? enemyDef.scale) : (enemyDef?.scale ?? 0.5);
+        tmpVec.set(e.position.x, e.position.y + scale * 0.5, e.position.z);
         tmpMatrix.makeTranslation(tmpVec.x, tmpVec.y, tmpVec.z);
-        tmpMatrix.scale(tmpVec.set(drone.scale, drone.scale, drone.scale));
+        tmpMatrix.scale(tmpVec.set(scale, scale, scale));
       } else {
         tmpMatrix.makeTranslation(0, -100, 0);
       }
