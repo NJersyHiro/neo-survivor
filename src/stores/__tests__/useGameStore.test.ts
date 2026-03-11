@@ -127,4 +127,33 @@ describe('useGameStore', () => {
     useGameStore.getState().damageEnemy('1', 5);
     expect(useGameStore.getState().enemies[0]?.hp).toBe(15);
   });
+
+  it('damageEnemy removes dead enemies and increments killCount', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().spawnEnemy({
+      id: '1',
+      definitionId: 'drone',
+      position: { x: 0, y: 0, z: 0 },
+      hp: 10,
+      maxHp: 10,
+    });
+    useGameStore.getState().spawnEnemy({
+      id: '2',
+      definitionId: 'drone',
+      position: { x: 5, y: 0, z: 5 },
+      hp: 10,
+      maxHp: 10,
+    });
+    expect(useGameStore.getState().killCount).toBe(0);
+
+    // Kill enemy 1
+    useGameStore.getState().damageEnemy('1', 20);
+    expect(useGameStore.getState().enemies).toHaveLength(1);
+    expect(useGameStore.getState().killCount).toBe(1);
+
+    // Kill enemy 2
+    useGameStore.getState().damageEnemy('2', 10);
+    expect(useGameStore.getState().enemies).toHaveLength(0);
+    expect(useGameStore.getState().killCount).toBe(2);
+  });
 });

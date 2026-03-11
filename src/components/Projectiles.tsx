@@ -48,18 +48,15 @@ export default function Projectiles() {
         for (const enemy of enemies) {
           const dist = distance(player.position, enemy.position);
           if (dist <= def.area) {
+            const enemyDef = ENEMIES[enemy.definitionId];
+            const willDie = enemy.hp - damage <= 0;
             store.damageEnemy(enemy.id, damage);
-            // Check if enemy died
-            const updatedEnemies = useGameStore.getState().enemies;
-            const e = updatedEnemies.find((en) => en.id === enemy.id);
-            if (e && e.hp <= 0) {
-              const enemyDef = ENEMIES[e.definitionId];
+            if (willDie && enemyDef) {
               store.addXPGem({
                 id: generateId(),
-                position: { ...e.position },
-                value: enemyDef?.xpValue ?? 1,
+                position: { ...enemy.position },
+                value: enemyDef.xpValue,
               });
-              store.removeEnemy(e.id);
             }
           }
         }
@@ -118,18 +115,15 @@ export default function Projectiles() {
       for (const enemy of currentEnemies) {
         const dist = distance(proj.position, enemy.position);
         if (dist < proj.area + 0.5) {
+          const enemyDef = ENEMIES[enemy.definitionId];
+          const willDie = enemy.hp - proj.damage <= 0;
           store.damageEnemy(enemy.id, proj.damage);
-          // Check death
-          const updatedEnemies = useGameStore.getState().enemies;
-          const e = updatedEnemies.find((en) => en.id === enemy.id);
-          if (e && e.hp <= 0) {
-            const enemyDef = ENEMIES[e.definitionId];
+          if (willDie && enemyDef) {
             store.addXPGem({
               id: generateId(),
-              position: { ...e.position },
-              value: enemyDef?.xpValue ?? 1,
+              position: { ...enemy.position },
+              value: enemyDef.xpValue,
             });
-            store.removeEnemy(e.id);
           }
 
           proj.pierceCount += 1;

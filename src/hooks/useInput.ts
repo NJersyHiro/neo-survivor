@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useGameStore } from '../stores/useGameStore';
 
 interface InputState {
   dx: number;
@@ -40,6 +41,9 @@ export function useInput() {
     }
 
     const onTouchStart = (e: TouchEvent) => {
+      // Only capture touch during active gameplay — allow UI taps during level-up/menu/gameover
+      const phase = useGameStore.getState().phase;
+      if (phase !== 'playing') return;
       e.preventDefault();
       if (touchIdRef.current !== null) return;
       const touch = e.changedTouches[0];

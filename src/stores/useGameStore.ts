@@ -200,11 +200,17 @@ export const useGameStore = create<GameState>()((set) => ({
     })),
 
   damageEnemy: (id, damage) =>
-    set((state) => ({
-      enemies: state.enemies.map((e) =>
+    set((state) => {
+      const enemies = state.enemies.map((e) =>
         e.id === id ? { ...e, hp: e.hp - damage } : e
-      ),
-    })),
+      );
+      const dead = enemies.filter((e) => e.hp <= 0);
+      const alive = enemies.filter((e) => e.hp > 0);
+      return {
+        enemies: alive,
+        killCount: state.killCount + dead.length,
+      };
+    }),
 
   addProjectile: (proj) =>
     set((state) => ({ projectiles: [...state.projectiles, proj] })),
