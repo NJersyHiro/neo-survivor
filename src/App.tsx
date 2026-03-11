@@ -1,5 +1,4 @@
 import { Canvas } from '@react-three/fiber';
-import { useEffect } from 'react';
 import Stage from './components/Stage';
 import Camera from './components/Camera';
 import Player from './components/Player';
@@ -12,7 +11,7 @@ import PostProcessing from './components/PostProcessing';
 import HUD from './ui/HUD';
 import LevelUpScreen from './ui/LevelUpScreen';
 import ResultsScreen from './ui/ResultsScreen';
-import { useGameStore } from './stores/useGameStore';
+import MainMenu from './ui/MainMenu';
 
 function GameScene() {
   return (
@@ -33,14 +32,6 @@ function GameScene() {
 }
 
 export default function App() {
-  const phase = useGameStore((s) => s.phase);
-
-  useEffect(() => {
-    if (phase === 'menu') {
-      useGameStore.getState().startRun();
-    }
-  }, [phase]);
-
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
@@ -52,6 +43,7 @@ export default function App() {
       <HUD />
       <LevelUpScreen />
       <ResultsScreen />
+      <MainMenu />
     </div>
   );
 }
