@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { distance } from '../utils/math';
+import { SoundManager } from '../game/SoundManager';
 
 const MAX_CHESTS = 20;
 const PICKUP_RADIUS = 1.5;
@@ -35,6 +36,7 @@ export default function Chests() {
     for (const chest of chests) {
       const dist = distance(playerPos, chest.position);
       if (dist < PICKUP_RADIUS) {
+        SoundManager.chestPickup();
         state.collectChest(chest.id);
       }
     }

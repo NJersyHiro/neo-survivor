@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { getComputedStats } from '../hooks/useComputedStats';
+import { SoundManager } from '../game/SoundManager';
 
 const MAX_GEMS = 400;
 const MAGNET_RADIUS = 3.0;
@@ -57,6 +58,7 @@ export default function XPGemRenderer() {
     }
 
     if (totalXP > 0) {
+      SoundManager.pickupXP();
       state.addXP(totalXP);
     }
     for (const id of collectedIds) {

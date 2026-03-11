@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { useMetaStore } from '../stores/useMetaStore';
 import ShopScreen from './ShopScreen';
+import { SoundManager } from '../game/SoundManager';
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -30,14 +31,14 @@ export default function MainMenu() {
     }}>
       {/* Credits */}
       <div style={{
-        position: 'absolute', top: 16, right: 24, color: '#ffff00',
+        position: 'absolute', top: 'calc(var(--sat) + 16px)', right: 24, color: '#ffff00',
         fontSize: 18, fontWeight: 'bold', textShadow: '0 0 10px #ffff00',
       }}>
         {credits} CR
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginTop: 16 }}>
+      <div style={{ display: 'flex', gap: 0, marginTop: 'calc(var(--sat) + 16px)' }}>
         {(['play', 'shop'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} style={{
             background: 'transparent', border: 'none',
@@ -63,7 +64,7 @@ export default function MainMenu() {
           }}>
             NEO SURVIVOR
           </div>
-          <button onClick={() => useGameStore.getState().startRun()} style={{
+          <button onClick={() => { SoundManager.unlock(); SoundManager.buttonClick(); useGameStore.getState().startRun(); }} style={{
             background: '#00ffff', color: '#000', border: 'none', borderRadius: 8,
             padding: '16px 64px', fontSize: 24, fontWeight: 'bold',
             fontFamily: "'Courier New', monospace", cursor: 'pointer',

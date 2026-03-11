@@ -3,6 +3,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { WEAPONS } from '../data/weapons';
 import { ITEMS } from '../data/items';
 import type { LevelUpOption } from '../types';
+import { SoundManager } from '../game/SoundManager';
 
 const fontFamily = "'Courier New', monospace";
 
@@ -198,6 +199,7 @@ export default function LevelUpScreen() {
       }
       return;
     }
+    SoundManager.buttonClick();
     selectLevelUpOption(option);
   };
 

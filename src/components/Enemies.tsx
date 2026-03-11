@@ -6,6 +6,7 @@ import { ENEMIES } from '../data/enemies';
 import { getSpawnCount, getSpawnPosition, getEnemyTypeForTime, SPAWN_INTERVAL } from '../game/WaveManager';
 import { shouldSpawnBoss } from '../game/BossManager';
 import { generateId, distance, directionTo } from '../utils/math';
+import { SoundManager } from '../game/SoundManager';
 
 const MAX_INSTANCES = 300;
 const CONTACT_DISTANCE = 0.8;
@@ -18,6 +19,7 @@ export default function Enemies() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const spawnTimerRef = useRef(0);
   const prevTimeRef = useRef(0);
+  const lastHitSoundRef = useRef(0);
 
   useFrame((_state, delta) => {
     const store = useGameStore.getState();
@@ -63,6 +65,7 @@ export default function Enemies() {
           hp: bossdef.hp,
           maxHp: bossdef.hp,
         });
+        SoundManager.bossSpawn();
       }
     }
     prevTimeRef.current = store.elapsedTime;
@@ -78,6 +81,11 @@ export default function Enemies() {
       const dist = distance(enemy.position, player.position);
       if (dist < CONTACT_DISTANCE) {
         store.takeDamage(enemyDef.damage * clampedDelta);
+        const now = store.elapsedTime;
+        if (now - lastHitSoundRef.current >= 1) {
+          lastHitSoundRef.current = now;
+          SoundManager.playerHit();
+        }
       }
     }
 

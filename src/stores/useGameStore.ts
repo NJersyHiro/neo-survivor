@@ -16,6 +16,7 @@ import { computePlayerStats } from '../game/StatsEngine';
 import { checkEvolution } from '../game/EvolutionSystem';
 import { useMetaStore } from './useMetaStore';
 import { ENEMIES } from '../data/enemies';
+import { SoundManager } from '../game/SoundManager';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -238,6 +239,7 @@ export const useGameStore = create<GameState>()((set) => ({
         player.level += 1;
         player.xpToNextLevel = xpForLevel(player.level);
         const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds);
+        SoundManager.levelUp();
         return { player, phase: 'levelup', levelUpOptions: options };
       }
 

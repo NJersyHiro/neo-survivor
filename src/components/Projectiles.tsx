@@ -8,6 +8,7 @@ import { getWeaponDamage, findNearestEnemy, getWeaponCooldown } from '../game/We
 import { getComputedStats } from '../hooks/useComputedStats';
 import { generateId, distance, directionTo } from '../utils/math';
 import type { ProjectileInstance } from '../types';
+import { SoundManager } from '../game/SoundManager';
 
 const MAX_PROJECTILES = 200;
 const PROJECTILE_LIFETIME = 3.0;
@@ -47,13 +48,16 @@ export default function Projectiles() {
 
       if (def.category === 'melee') {
         // Damage all enemies within area
+        let meleeHitAny = false;
         for (const enemy of enemies) {
           const dist = distance(player.position, enemy.position);
           if (dist <= def.area * (1 + stats.area / 100)) {
             const enemyDef = ENEMIES[enemy.definitionId];
             const willDie = enemy.hp - damage <= 0;
             store.damageEnemy(enemy.id, damage);
+            meleeHitAny = true;
             if (willDie && enemyDef) {
+              SoundManager.enemyDeath();
               store.addXPGem({
                 id: generateId(),
                 position: { ...enemy.position },
@@ -70,6 +74,9 @@ export default function Projectiles() {
               }
             }
           }
+        }
+        if (meleeHitAny) {
+          SoundManager.shoot();
         }
       } else {
         // Ranged or multishot
@@ -104,6 +111,7 @@ export default function Projectiles() {
           };
           store.addProjectile(proj);
         }
+        SoundManager.shoot();
       }
     }
 
@@ -130,6 +138,7 @@ export default function Projectiles() {
           const willDie = enemy.hp - proj.damage <= 0;
           store.damageEnemy(enemy.id, proj.damage);
           if (willDie && enemyDef) {
+            SoundManager.enemyDeath();
             store.addXPGem({
               id: generateId(),
               position: { ...enemy.position },
@@ -144,6 +153,8 @@ export default function Projectiles() {
                 type: chestType,
               });
             }
+          } else {
+            SoundManager.enemyHit();
           }
 
           proj.pierceCount += 1;
