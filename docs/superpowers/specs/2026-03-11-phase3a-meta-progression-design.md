@@ -30,12 +30,16 @@ Run ends → credits earned → useMetaStore.addCredits() → SaveManager.save()
 
 Interface-based abstraction with three methods:
 
-- `load(): SaveData | null` — reads and parses from storage, returns null if no save exists
-- `save(data: SaveData): void` — serializes and writes to storage
-- `clear(): void` — deletes save data
+- `load(): Promise<SaveData | null>` — reads and parses from storage, returns null if no save exists or data is corrupt
+- `save(data: SaveData): Promise<void>` — serializes and writes to storage
+- `clear(): Promise<void>` — deletes save data
+
+All methods are async to support future Capacitor Preferences API (Phase 6). Current localStorage backend wraps sync calls in `Promise.resolve()`.
 
 Current backend: `localStorage` under key `neo_survivor_save`.
-Future backend (Phase 6): Capacitor Preferences API — swap with zero changes to consumers.
+Future backend (Phase 6): Capacitor Preferences API — async interface means zero changes to consumers.
+
+**Error handling**: `load()` wraps `JSON.parse` in try/catch. On parse failure or version mismatch, returns `null` (treats as fresh start). Never throws.
 
 ### SaveData Shape
 
@@ -53,7 +57,7 @@ interface SaveData {
 }
 ```
 
-Version field enables future migration if the shape changes.
+Version field enables future migration. On `load()`, if `version` does not match expected version, return `null` (reset to defaults). Migration functions can be added later if needed.
 
 ---
 
@@ -71,9 +75,9 @@ Credits are NOT physical pickups like XP gems. They accumulate invisibly during 
 
 ### Economy Target
 
-- 12 upgrades × 5 levels = 60 total purchases
-- Cost escalation: `baseCost * level^2` (level is the level being purchased, 1-5)
-- Full shop completion: ~35-40 runs (moderate grind)
+- 10 stat upgrades × 5 levels + 1 reroll upgrade × 5 levels + 1 revival upgrade × 1 level = 56 total purchases
+- Cost escalation: `baseCost * level` (linear, not quadratic)
+- Full shop cost: ~8,400 credits. At ~200 credits/run, full completion takes ~40 runs (moderate grind)
 
 ---
 
@@ -95,8 +99,8 @@ Credits are NOT physical pickups like XP gems. They accumulate invisibly during 
 | `tractor_beam` | Tractor Beam | magnet | +10% | 30 |
 | `data_miner` | Data Miner | growth | +5% | 30 |
 | `fortune_chip` | Fortune Chip | luck | +5% | 20 |
-| `extra_reroll` | Extra Reroll | rerolls | +1 | 60 |
-| `revival_kit` | Revival Kit | revives | +1 (max 1 total) | 80 |
+| `extra_reroll` | Extra Reroll | *special* | +1 reroll/run | 60 |
+| `revival_kit` | Revival Kit | *special* | 1 revive/run | 80 |
 
 ### Upgrade Definition Type
 
@@ -105,25 +109,44 @@ interface UpgradeDefinition {
   id: string;
   name: string;
   description: string;
-  statKey: string;       // maps to ComputedStats key, or special key
+  statKey: StatKey | null;  // null for special upgrades (rerolls, revives)
   bonusPerLevel: number;
   baseCost: number;
-  maxLevel: number;      // always 5
+  maxLevel: number;         // 5 for most, 1 for revival_kit
 }
 ```
 
+`statKey: null` means the upgrade is handled as a special case — `StatsEngine` skips it, and the bonus is read directly in `startRun` or `takeDamage`.
+
+### Upgrade Descriptions
+
+| ID | Description |
+|----|-------------|
+| `power_core` | "Permanently increases all damage dealt." |
+| `plating` | "Permanently reduces incoming damage." |
+| `vitality` | "Permanently increases maximum health." |
+| `regenerator` | "Permanently regenerates health each second." |
+| `thrusters` | "Permanently increases movement speed." |
+| `overclocking` | "Permanently reduces weapon cooldowns." |
+| `sensor_array` | "Permanently increases weapon area of effect." |
+| `tractor_beam` | "Permanently increases XP gem pickup range." |
+| `data_miner` | "Permanently increases XP gained." |
+| `fortune_chip` | "Permanently increases luck." |
+| `extra_reroll` | "Gain additional rerolls at the start of each run." |
+| `revival_kit` | "Revive once per run at 30% HP when killed." |
+
 ### Cost Formula
 
-`cost(level) = baseCost * level^2`
+`cost(level) = baseCost * level`
 
 Examples for Power Core (baseCost 40):
-- Level 1: 40, Level 2: 160, Level 3: 360, Level 4: 640, Level 5: 1000
-- Total for one upgrade: 2200 credits
+- Level 1: 40, Level 2: 80, Level 3: 120, Level 4: 160, Level 5: 200
+- Total for one upgrade: 600 credits
 
 ### Special Upgrades
 
-- **extra_reroll**: Increases `rerollCount` at run start. Base is 3, each level adds 1.
-- **revival_kit**: On death, if player has revives > 0, restore to 30% HP instead of game over. Max 1 revive per run. Level 1 = 1 revive.
+- **extra_reroll** (maxLevel: 5): Increases `rerollCount` at run start. Base is 3, each level adds 1.
+- **revival_kit** (maxLevel: 1): On death, restore to 30% HP instead of game over. Max 1 revive per run. Single purchase only.
 
 ---
 
@@ -204,15 +227,27 @@ Two tab buttons at top: PLAY | SHOP. Active tab has neon underline.
 
 ### startRun Updates
 
-When starting a run, read from `useMetaStore`:
-- Apply `extra_reroll` upgrade: `rerollCount = 3 + upgradeLevel`
-- Store `reviveCount` from `revival_kit` upgrade level (0 or 1)
+When starting a run, `useGameStore.startRun()` imports and reads from `useMetaStore.getState()` directly (cross-store read is fine in Zustand since it's just a function call):
+- Apply `extra_reroll` upgrade: `rerollCount = 3 + useMetaStore.getState().upgrades.extra_reroll ?? 0`
+- Store `reviveCount` from `revival_kit` upgrade level: `reviveCount = useMetaStore.getState().upgrades.revival_kit ?? 0`
+
+### New GameState Fields
+
+Add to `GameState` interface:
+```ts
+creditsEarned: number;  // accumulated during run, initialized to 0
+reviveCount: number;     // from revival_kit upgrade, initialized from useMetaStore
+```
+
+Both reset to their initial values in `reset()` and `startRun()`.
 
 ### Credits During Run
 
-Add `creditsEarned: number` to `useGameStore`. Increment on enemy kill:
-- Regular enemy: `+random(1, 3)`
-- Boss enemy: `+random(25, 50)`
+Credit accumulation happens inside `damageEnemy` in `useGameStore` (single source of truth, avoids duplicating logic across melee/ranged kill paths in Projectiles.tsx). When an enemy dies:
+- Regular enemy: `creditsEarned += random(1, 3)`
+- Boss enemy (`ENEMIES[id]?.isBoss`): `creditsEarned += random(25, 50)`
+
+This requires importing `ENEMIES` in useGameStore.
 
 ### takeDamage Update (Revival)
 
@@ -222,7 +257,7 @@ When HP hits 0, check if `reviveCount > 0`:
 
 ### Results Screen Update
 
-Show credits earned during the run. On dismiss (RETRY or MENU), call `useMetaStore.recordRunStats()` to persist.
+Show credits earned during the run. Add a "MENU" button alongside existing "RETRY" button. On either button, call `useMetaStore.recordRunStats()` to persist. "MENU" sets phase to `'menu'`, "RETRY" calls `startRun()`.
 
 ---
 
@@ -240,7 +275,7 @@ Show credits earned during the run. On dismiss (RETRY or MENU), call `useMetaSto
 | `src/ui/MainMenu.tsx` | Create | Menu with PLAY/SHOP tabs |
 | `src/ui/ShopScreen.tsx` | Create | Upgrade purchase UI |
 | `src/ui/ResultsScreen.tsx` | Modify | Show credits earned |
-| `src/components/Projectiles.tsx` | Modify | Credit drops on enemy kill |
+| `src/components/Player.tsx` | Modify | moveSpeed already applied via delta multiplier (verify) |
 | `src/hooks/useComputedStats.ts` | Modify | Pass shop upgrades to StatsEngine |
 | `src/App.tsx` | Modify | Show MainMenu, stop auto-starting run |
 
