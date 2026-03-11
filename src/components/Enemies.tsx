@@ -103,7 +103,7 @@ export default function Enemies() {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_INSTANCES]}>
+    <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_INSTANCES]} frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color={drone.color} emissive={drone.emissive} emissiveIntensity={0.5} />
     </instancedMesh>
