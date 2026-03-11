@@ -190,7 +190,7 @@ export default function Projectiles() {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_PROJECTILES]}>
+    <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_PROJECTILES]} frustumCulled={false}>
       <sphereGeometry args={[1, 8, 8]} />
       <meshStandardMaterial color="#ffff00" emissive="#ffff00" emissiveIntensity={1} />
     </instancedMesh>

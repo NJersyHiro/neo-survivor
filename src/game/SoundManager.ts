@@ -1,13 +1,15 @@
 let audioCtx: AudioContext | null = null;
+let unlocked = false;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
-    audioCtx = new AudioContext();
+    audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
   }
   return audioCtx;
 }
 
 function playTone(freq: number, duration: number, type: OscillatorType = 'square', volume: number = 0.1) {
+  if (!unlocked) return;
   try {
     const ctx = getCtx();
     if (ctx.state === 'suspended') {
@@ -71,15 +73,37 @@ export const SoundManager = {
     playTone(660, 0.03, 'sine', 0.05);
   },
 
-  // Call this on first user interaction to unlock audio context
+  // Must be called from a user gesture (touch/click) to unlock iOS audio
   unlock() {
+    if (unlocked) return;
     try {
       const ctx = getCtx();
+      // Resume suspended context
       if (ctx.state === 'suspended') {
         void ctx.resume();
       }
+      // Play a silent buffer — required by iOS Safari/WebKit to fully unlock audio
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      unlocked = true;
     } catch {
       // ignore
     }
+  },
+
+  // Auto-setup: listen for first touch/click to unlock
+  init() {
+    const handler = () => {
+      SoundManager.unlock();
+      document.removeEventListener('touchstart', handler, true);
+      document.removeEventListener('touchend', handler, true);
+      document.removeEventListener('click', handler, true);
+    };
+    document.addEventListener('touchstart', handler, true);
+    document.addEventListener('touchend', handler, true);
+    document.addEventListener('click', handler, true);
   },
 };

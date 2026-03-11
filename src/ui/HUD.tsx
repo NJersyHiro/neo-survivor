@@ -72,7 +72,7 @@ export default function HUD() {
       }}
     >
       {/* Top-left: HP + Level */}
-      <div style={{ position: 'absolute', top: 16, left: 16 }}>
+      <div style={{ position: 'absolute', top: 'calc(var(--sat) + 16px)', left: 16 }}>
         <div style={{ color: '#ff3366', fontSize: 14, marginBottom: 4 }}>
           HP: {Math.ceil(hp)} / {maxHp}
         </div>
@@ -122,7 +122,7 @@ export default function HUD() {
       <div
         style={{
           position: 'absolute',
-          top: 16,
+          top: 'calc(var(--sat) + 16px)',
           left: '50%',
           transform: 'translateX(-50%)',
           color: '#00ffff',
@@ -138,7 +138,7 @@ export default function HUD() {
       <div
         style={{
           position: 'absolute',
-          top: 16,
+          top: 'calc(var(--sat) + 16px)',
           right: 16,
           color: '#ffff00',
           fontSize: 16,
@@ -153,7 +153,7 @@ export default function HUD() {
         <div
           style={{
             position: 'absolute',
-            top: 60,
+            top: 'calc(var(--sat) + 60px)',
             left: '50%',
             transform: 'translateX(-50%)',
             color: '#ffd700',
@@ -175,7 +175,7 @@ export default function HUD() {
       <div
         style={{
           position: 'absolute',
-          bottom: 48,
+          bottom: 'calc(var(--sab) + 48px)',
           left: 16,
           display: 'flex',
           flexDirection: 'row',
@@ -209,7 +209,7 @@ export default function HUD() {
         <div
           style={{
             position: 'absolute',
-            bottom: 16,
+            bottom: 'calc(var(--sab) + 16px)',
             left: 16,
             display: 'flex',
             flexDirection: 'row',
