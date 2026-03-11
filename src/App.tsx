@@ -5,6 +5,9 @@ import Camera from './components/Camera';
 import Player from './components/Player';
 import Enemies from './components/Enemies';
 import Projectiles from './components/Projectiles';
+import XPGemRenderer from './components/XPGems';
+import GameLoop from './components/GameLoop';
+import LevelUpScreen from './ui/LevelUpScreen';
 import { useGameStore } from './stores/useGameStore';
 
 function GameScene() {
@@ -17,6 +20,8 @@ function GameScene() {
       <Player />
       <Enemies />
       <Projectiles />
+      <XPGemRenderer />
+      <GameLoop />
     </>
   );
 }
@@ -38,6 +43,7 @@ export default function App() {
       >
         <GameScene />
       </Canvas>
+      <LevelUpScreen />
     </div>
   );
 }
