@@ -11,6 +11,7 @@ import type {
 } from '../types';
 import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
 import { ITEMS, ALL_ITEM_IDS } from '../data/items';
+import { computePlayerStats } from '../game/StatsEngine';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -64,6 +65,7 @@ interface GameState {
   addXPGem: (gem: XPGemInstance) => void;
   removeXPGem: (id: string) => void;
   movePlayer: (dx: number, dz: number, delta: number) => void;
+  healPlayer: (amount: number) => void;
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -326,6 +328,15 @@ export const useGameStore = create<GameState>()((set) => ({
       position.x = Math.max(-24, Math.min(24, position.x + dx * player.speed * delta));
       position.z = Math.max(-24, Math.min(24, position.z + dz * player.speed * delta));
       player.position = position;
+      return { player };
+    }),
+
+  healPlayer: (amount) =>
+    set((state) => {
+      const player = { ...state.player };
+      const stats = computePlayerStats(state.items);
+      const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
+      player.hp = Math.min(player.hp + amount, effectiveMaxHp);
       return { player };
     }),
 }));

@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
+import { getComputedStats } from '../hooks/useComputedStats';
 
 const MAX_GEMS = 400;
 const MAGNET_RADIUS = 3.0;
@@ -33,6 +34,8 @@ export default function XPGemRenderer() {
 
     const gems = state.xpGems;
     const playerPos = state.player.position;
+    const stats = getComputedStats();
+    const magnetRadius = MAGNET_RADIUS * (1 + stats.magnet / 100);
 
     let totalXP = 0;
     const collectedIds: string[] = [];
@@ -43,9 +46,9 @@ export default function XPGemRenderer() {
       const dist = Math.sqrt(dx * dx + dz * dz);
 
       if (dist < PICKUP_RADIUS) {
-        totalXP += gem.value;
+        totalXP += gem.value * (1 + stats.growth / 100);
         collectedIds.push(gem.id);
-      } else if (dist < MAGNET_RADIUS) {
+      } else if (dist < magnetRadius) {
         const nx = dx / dist;
         const nz = dz / dist;
         gem.position.x += nx * MAGNET_SPEED * delta;

@@ -5,6 +5,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { getWeaponDamage, findNearestEnemy, getWeaponCooldown } from '../game/WeaponSystem';
+import { getComputedStats } from '../hooks/useComputedStats';
 import { generateId, distance, directionTo } from '../utils/math';
 import type { ProjectileInstance } from '../types';
 
@@ -26,6 +27,7 @@ export default function Projectiles() {
     const clampedDelta = Math.min(delta, 0.1);
     const { weapons, player, enemies } = store;
     const cooldowns = cooldownsRef.current;
+    const stats = getComputedStats();
 
     // --- Per-weapon fire logic ---
     for (const weapon of weapons) {
@@ -39,15 +41,15 @@ export default function Projectiles() {
       if (newCd > 0) continue;
 
       // Reset cooldown
-      cooldowns.set(weapon.definitionId, getWeaponCooldown(weapon.definitionId, weapon.level));
+      cooldowns.set(weapon.definitionId, getWeaponCooldown(weapon.definitionId, weapon.level) * (1 + stats.cooldown / 100));
 
-      const damage = getWeaponDamage(weapon.definitionId, weapon.level, player.might);
+      const damage = getWeaponDamage(weapon.definitionId, weapon.level, player.might + stats.might);
 
       if (def.category === 'melee') {
         // Damage all enemies within area
         for (const enemy of enemies) {
           const dist = distance(player.position, enemy.position);
-          if (dist <= def.area) {
+          if (dist <= def.area * (1 + stats.area / 100)) {
             const enemyDef = ENEMIES[enemy.definitionId];
             const willDie = enemy.hp - damage <= 0;
             store.damageEnemy(enemy.id, damage);
@@ -87,7 +89,7 @@ export default function Projectiles() {
             damage,
             pierce: def.pierce,
             pierceCount: 0,
-            area: def.area,
+            area: def.area * (1 + stats.area / 100),
             lifetime: PROJECTILE_LIFETIME,
             age: 0,
           };

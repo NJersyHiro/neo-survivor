@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useInput } from '../hooks/useInput';
 import { useGameStore } from '../stores/useGameStore';
+import { getComputedStats } from '../hooks/useComputedStats';
 
 export default function Player() {
   const meshRef = useRef<THREE.Group>(null);
@@ -14,7 +15,8 @@ export default function Player() {
 
     if (store.phase === 'playing') {
       if (dx !== 0 || dz !== 0) {
-        store.movePlayer(dx, dz, delta);
+        const stats = getComputedStats();
+        store.movePlayer(dx, dz, delta * (1 + stats.moveSpeed / 100));
       }
     }
 
