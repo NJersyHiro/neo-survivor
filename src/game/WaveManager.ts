@@ -20,4 +20,10 @@ export function getSpawnPosition(playerPos: Vec3): Vec3 {
   return { x, y: 0, z };
 }
 
+export function getEnemyTypeForTime(elapsedTime: number): string {
+  if (elapsedTime < 60) return 'drone';
+  if (elapsedTime < 180) return Math.random() < 0.7 ? 'drone' : 'speeder';
+  return Math.random() < 0.5 ? 'drone' : Math.random() < 0.5 ? 'speeder' : 'tank';
+}
+
 export const SPAWN_INTERVAL = 2.0;

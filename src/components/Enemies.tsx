@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { ENEMIES } from '../data/enemies';
-import { getSpawnCount, getSpawnPosition, SPAWN_INTERVAL } from '../game/WaveManager';
+import { getSpawnCount, getSpawnPosition, getEnemyTypeForTime, SPAWN_INTERVAL } from '../game/WaveManager';
 import { shouldSpawnBoss } from '../game/BossManager';
 import { generateId, distance, directionTo } from '../utils/math';
 
@@ -33,11 +33,14 @@ export default function Enemies() {
       for (let i = 0; i < count; i++) {
         if (store.enemies.length >= MAX_INSTANCES) break;
         const pos = getSpawnPosition(store.player.position);
+        const enemyType = getEnemyTypeForTime(store.elapsedTime);
+        const enemyDef = ENEMIES[enemyType];
+        if (!enemyDef) continue;
         const hpScale = 1 + store.elapsedTime / 120;
-        const hp = Math.floor(drone.hp * hpScale);
+        const hp = Math.floor(enemyDef.hp * hpScale);
         store.spawnEnemy({
           id: generateId(),
-          definitionId: 'drone',
+          definitionId: enemyType,
           position: pos,
           hp,
           maxHp: hp,

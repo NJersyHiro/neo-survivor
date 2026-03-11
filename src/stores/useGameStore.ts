@@ -208,8 +208,8 @@ export const useGameStore = create<GameState>()((set) => ({
   tick: (delta) =>
     set((state) => {
       const newTime = state.elapsedTime + delta;
-      if (newTime >= 300) {
-        return { elapsedTime: 300, phase: 'gameover' };
+      if (newTime >= 900) {
+        return { elapsedTime: 900, phase: 'gameover' };
       }
       return { elapsedTime: newTime };
     }),

@@ -1,4 +1,4 @@
-const BOSS_SPAWN_MINUTES = [2, 4];
+const BOSS_SPAWN_MINUTES = [3, 5, 7, 10, 13];
 
 export function getBossSpawnMinutes(): number[] {
   return BOSS_SPAWN_MINUTES;
