@@ -42,4 +42,21 @@ describe('computePlayerStats', () => {
     expect(stats.recovery).toBeCloseTo(1.2);
     expect(stats.moveSpeed).toBe(0);
   });
+
+  it('applies shop upgrades with no items', () => {
+    const stats = computePlayerStats([], { power_core: 3 });
+    expect(stats.might).toBe(15); // 5 * 3
+  });
+
+  it('stacks shop upgrades with item bonuses', () => {
+    const items: ItemInstance[] = [{ definitionId: 'energy_cell', level: 2 }];
+    const stats = computePlayerStats(items, { power_core: 2 });
+    expect(stats.might).toBe(30); // item: 10*2=20, shop: 5*2=10
+  });
+
+  it('ignores special upgrades (null statKey)', () => {
+    const stats = computePlayerStats([], { extra_reroll: 3, revival_kit: 1 });
+    expect(stats.might).toBe(0);
+    expect(stats.armor).toBe(0);
+  });
 });

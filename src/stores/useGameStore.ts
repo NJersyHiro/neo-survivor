@@ -14,6 +14,7 @@ import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
 import { ITEMS, ALL_ITEM_IDS } from '../data/items';
 import { computePlayerStats } from '../game/StatsEngine';
 import { checkEvolution } from '../game/EvolutionSystem';
+import { useMetaStore } from './useMetaStore';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -397,7 +398,8 @@ export const useGameStore = create<GameState>()((set) => ({
   healPlayer: (amount) =>
     set((state) => {
       const player = { ...state.player };
-      const stats = computePlayerStats(state.items);
+      const shopUpgrades = useMetaStore.getState().upgrades;
+      const stats = computePlayerStats(state.items, shopUpgrades);
       const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
       player.hp = Math.min(player.hp + amount, effectiveMaxHp);
       return { player };

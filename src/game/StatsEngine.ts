@@ -1,5 +1,6 @@
 import type { ItemInstance, StatKey } from '../types';
 import { ITEMS } from '../data/items';
+import { UPGRADES } from '../data/upgrades';
 
 export interface ComputedStats {
   might: number;
@@ -22,7 +23,7 @@ const STAT_KEYS: StatKey[] = [
   'moveSpeed', 'magnet', 'luck', 'growth',
 ];
 
-export function computePlayerStats(items: ItemInstance[]): ComputedStats {
+export function computePlayerStats(items: ItemInstance[], shopUpgrades?: Record<string, number>): ComputedStats {
   const stats: ComputedStats = {
     might: 0,
     armor: 0,
@@ -47,6 +48,14 @@ export function computePlayerStats(items: ItemInstance[]): ComputedStats {
       if (bonus !== undefined) {
         stats[key] += bonus * item.level;
       }
+    }
+  }
+
+  if (shopUpgrades) {
+    for (const [id, level] of Object.entries(shopUpgrades)) {
+      const def = UPGRADES[id];
+      if (!def || def.statKey === null) continue;
+      stats[def.statKey] += def.bonusPerLevel * level;
     }
   }
 
