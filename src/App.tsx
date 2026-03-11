@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import Stage from './components/Stage';
 import Camera from './components/Camera';
 import Player from './components/Player';
+import Enemies from './components/Enemies';
+import Projectiles from './components/Projectiles';
 import { useGameStore } from './stores/useGameStore';
 
 function GameScene() {
@@ -13,6 +15,8 @@ function GameScene() {
       <pointLight position={[0, 10, 0]} intensity={0.5} color="#00ffff" />
       <Stage />
       <Player />
+      <Enemies />
+      <Projectiles />
     </>
   );
 }
