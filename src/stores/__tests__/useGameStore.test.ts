@@ -187,6 +187,39 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().banishCount).toBe(2);
   });
 
+  it('startRun initializes creditsEarned and reviveCount', () => {
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.creditsEarned).toBe(0);
+    expect(state.reviveCount).toBe(0);
+  });
+
+  it('damageEnemy accumulates credits on kill', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().spawnEnemy({
+      id: '1', definitionId: 'drone',
+      position: { x: 0, y: 0, z: 0 }, hp: 10, maxHp: 10,
+    });
+    useGameStore.getState().damageEnemy('1', 20);
+    expect(useGameStore.getState().creditsEarned).toBeGreaterThan(0);
+  });
+
+  it('takeDamage triggers revival instead of gameover when reviveCount > 0', () => {
+    useGameStore.getState().startRun();
+    useGameStore.setState({ reviveCount: 1 });
+    useGameStore.getState().takeDamage(200);
+    const state = useGameStore.getState();
+    expect(state.phase).toBe('playing');
+    expect(state.player.hp).toBeGreaterThan(0);
+    expect(state.reviveCount).toBe(0);
+  });
+
+  it('takeDamage triggers gameover when no revives left', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().takeDamage(200);
+    expect(useGameStore.getState().phase).toBe('gameover');
+  });
+
   it('damageEnemy removes dead enemies and increments killCount', () => {
     useGameStore.getState().startRun();
     useGameStore.getState().spawnEnemy({
