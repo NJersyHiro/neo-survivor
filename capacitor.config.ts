@@ -6,6 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   ios: {
     contentInset: 'always',
+    allowsLinkPreview: false,
+  },
+  server: {
+    // Allow inline media playback without requiring user action per element
+    iosScheme: 'capacitor',
   },
 };
 
