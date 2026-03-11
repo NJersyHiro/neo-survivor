@@ -194,7 +194,7 @@ const store = useGameStore();
 
 - Browser: Chrome DevTools for performance profiling
 - iOS Simulator: test touch controls, safe areas, performance
-- Real device: test on oldest supported device (iPhone SE 2) before release
+- Real device: test on oldest supported device (iPhone 15) before release
 
 ## Git Workflow
 
