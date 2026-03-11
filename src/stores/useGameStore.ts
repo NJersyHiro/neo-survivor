@@ -8,10 +8,12 @@ import type {
   ProjectileInstance,
   XPGemInstance,
   LevelUpOption,
+  ChestInstance,
 } from '../types';
 import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
 import { ITEMS, ALL_ITEM_IDS } from '../data/items';
 import { computePlayerStats } from '../game/StatsEngine';
+import { checkEvolution } from '../game/EvolutionSystem';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -42,6 +44,7 @@ interface GameState {
   projectiles: ProjectileInstance[];
   xpGems: XPGemInstance[];
   levelUpOptions: LevelUpOption[];
+  chests: ChestInstance[];
   rerollCount: number;
   skipCount: number;
   banishCount: number;
@@ -64,6 +67,9 @@ interface GameState {
   removeProjectile: (id: string) => void;
   addXPGem: (gem: XPGemInstance) => void;
   removeXPGem: (id: string) => void;
+  addChest: (chest: ChestInstance) => void;
+  removeChest: (id: string) => void;
+  collectChest: (id: string) => void;
   movePlayer: (dx: number, dz: number, delta: number) => void;
   healPlayer: (amount: number) => void;
 }
@@ -152,6 +158,7 @@ export const useGameStore = create<GameState>()((set) => ({
   enemies: [],
   projectiles: [],
   xpGems: [],
+  chests: [],
   levelUpOptions: [],
   rerollCount: 3,
   skipCount: 3,
@@ -169,6 +176,7 @@ export const useGameStore = create<GameState>()((set) => ({
       enemies: [],
       projectiles: [],
       xpGems: [],
+      chests: [],
       levelUpOptions: [],
       rerollCount: 3,
       skipCount: 3,
@@ -187,6 +195,7 @@ export const useGameStore = create<GameState>()((set) => ({
       enemies: [],
       projectiles: [],
       xpGems: [],
+      chests: [],
       levelUpOptions: [],
       rerollCount: 3,
       skipCount: 3,
@@ -320,6 +329,60 @@ export const useGameStore = create<GameState>()((set) => ({
     set((state) => ({
       xpGems: state.xpGems.filter((g) => g.id !== id),
     })),
+
+  addChest: (chest) =>
+    set((state) => ({ chests: [...state.chests, chest] })),
+
+  removeChest: (id) =>
+    set((state) => ({ chests: state.chests.filter((c) => c.id !== id) })),
+
+  collectChest: (id) =>
+    set((state) => {
+      const chest = state.chests.find((c) => c.id === id);
+      if (!chest) return {};
+
+      const chests = state.chests.filter((c) => c.id !== id);
+      const evolution = checkEvolution(state.weapons, state.items, chest.type);
+
+      if (evolution) {
+        // Replace base weapon with evolved weapon
+        const weapons = state.weapons.map((w) =>
+          w.definitionId === evolution.baseWeaponId
+            ? { definitionId: evolution.evolvedWeaponId, level: 1 }
+            : w
+        );
+        // Remove consumed item
+        const items = state.items.filter((i) => i.definitionId !== evolution.consumedItemId);
+        return { chests, weapons, items };
+      }
+
+      // No evolution: level up a random owned weapon or item by 1
+      const upgradeable = [
+        ...state.weapons.filter((w) => {
+          const def = WEAPONS[w.definitionId];
+          return def && w.level < def.maxLevel;
+        }).map((w) => ({ type: 'weapon' as const, id: w.definitionId })),
+        ...state.items.filter((i) => {
+          const def = ITEMS[i.definitionId];
+          return def && i.level < def.maxLevel;
+        }).map((i) => ({ type: 'item' as const, id: i.definitionId })),
+      ];
+
+      if (upgradeable.length === 0) return { chests };
+
+      const pick = upgradeable[Math.floor(Math.random() * upgradeable.length)]!;
+      if (pick.type === 'weapon') {
+        const weapons = state.weapons.map((w) =>
+          w.definitionId === pick.id ? { ...w, level: w.level + 1 } : w
+        );
+        return { chests, weapons };
+      } else {
+        const items = state.items.map((i) =>
+          i.definitionId === pick.id ? { ...i, level: i.level + 1 } : i
+        );
+        return { chests, items };
+      }
+    }),
 
   movePlayer: (dx, dz, delta) =>
     set((state) => {

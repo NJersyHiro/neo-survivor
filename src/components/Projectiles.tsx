@@ -59,6 +59,15 @@ export default function Projectiles() {
                 position: { ...enemy.position },
                 value: enemyDef.xpValue,
               });
+              // Boss drops chest
+              if (enemyDef.isBoss) {
+                const chestType = store.elapsedTime < 120 ? 'bronze' : 'silver';
+                store.addChest({
+                  id: generateId(),
+                  position: { ...enemy.position },
+                  type: chestType,
+                });
+              }
             }
           }
         }
@@ -126,6 +135,15 @@ export default function Projectiles() {
               position: { ...enemy.position },
               value: enemyDef.xpValue,
             });
+            // Boss drops chest
+            if (enemyDef.isBoss) {
+              const chestType = store.elapsedTime < 120 ? 'bronze' : 'silver';
+              store.addChest({
+                id: generateId(),
+                position: { ...enemy.position },
+                type: chestType,
+              });
+            }
           }
 
           proj.pierceCount += 1;

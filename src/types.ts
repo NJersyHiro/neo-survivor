@@ -98,6 +98,14 @@ export interface ItemInstance {
   level: number;
 }
 
+export type ChestType = 'bronze' | 'silver';
+
+export interface ChestInstance {
+  id: string;
+  position: Vec3;
+  type: ChestType;
+}
+
 export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover';
 
 export interface LevelUpOption {
