@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore, xpForLevel } from '../useGameStore';
+import { useMetaStore } from '../useMetaStore';
 
 describe('useGameStore', () => {
   beforeEach(() => {
     useGameStore.getState().reset();
+    useMetaStore.setState({
+      selectedCharacterId: 'kai',
+      unlockedIds: ['kai'],
+      characterLevels: {},
+    });
   });
 
   it('initializes with correct defaults', () => {
@@ -247,5 +253,52 @@ describe('useGameStore', () => {
     useGameStore.getState().damageEnemy('2', 10);
     expect(useGameStore.getState().enemies).toHaveLength(0);
     expect(useGameStore.getState().killCount).toBe(2);
+  });
+
+  it('startRun uses selected character starting weapon', () => {
+    useMetaStore.setState({
+      selectedCharacterId: 'vex',
+      unlockedIds: ['kai', 'vex'],
+      characterLevels: {},
+    });
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.weapons[0]?.definitionId).toBe('neon_whip');
+  });
+
+  it('startRun applies character maxHp with upgrade level', () => {
+    useMetaStore.setState({
+      selectedCharacterId: 'tank',
+      unlockedIds: ['kai', 'tank'],
+      characterLevels: { tank: 2 },
+    });
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.player.maxHp).toBe(134);
+    expect(state.player.hp).toBe(134);
+  });
+
+  it('startRun initializes per-run counters to zero', () => {
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.damageTaken).toBe(0);
+    expect(state.bossKills).toBe(0);
+    expect(state.xpGemsCollected).toBe(0);
+  });
+
+  it('takeDamage increments damageTaken counter', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().takeDamage(25);
+    expect(useGameStore.getState().damageTaken).toBe(25);
+  });
+
+  it('damageEnemy increments bossKills on boss death', () => {
+    useGameStore.getState().startRun();
+    useGameStore.getState().spawnEnemy({
+      id: 'b1', definitionId: 'sentinel',
+      position: { x: 0, y: 0, z: 0 }, hp: 10, maxHp: 10,
+    });
+    useGameStore.getState().damageEnemy('b1', 20);
+    expect(useGameStore.getState().bossKills).toBe(1);
   });
 });

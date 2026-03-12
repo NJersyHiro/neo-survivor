@@ -16,6 +16,7 @@ import { computePlayerStats } from '../game/StatsEngine';
 import { checkEvolution } from '../game/EvolutionSystem';
 import { useMetaStore } from './useMetaStore';
 import { ENEMIES } from '../data/enemies';
+import { CHARACTERS } from '../data/characters';
 import { SoundManager } from '../game/SoundManager';
 
 export function xpForLevel(level: number): number {
@@ -54,6 +55,9 @@ interface GameState {
   banishedIds: string[];
   creditsEarned: number;
   reviveCount: number;
+  damageTaken: number;
+  bossKills: number;
+  xpGemsCollected: number;
 
   reset: () => void;
   startRun: () => void;
@@ -171,6 +175,9 @@ export const useGameStore = create<GameState>()((set) => ({
   banishedIds: [],
   creditsEarned: 0,
   reviveCount: 0,
+  damageTaken: 0,
+  bossKills: 0,
+  xpGemsCollected: 0,
 
   reset: () =>
     set({
@@ -191,18 +198,31 @@ export const useGameStore = create<GameState>()((set) => ({
       banishedIds: [],
       creditsEarned: 0,
       reviveCount: 0,
+      damageTaken: 0,
+      bossKills: 0,
+      xpGemsCollected: 0,
     }),
 
   startRun: () => {
     const meta = useMetaStore.getState();
     const extraRerolls = meta.getUpgradeLevel('extra_reroll');
     const revives = meta.getUpgradeLevel('revival_kit');
+    const characterId = meta.selectedCharacterId;
+    const characterDef = CHARACTERS[characterId];
+    const characterLevel = meta.characterLevels[characterId] ?? 0;
+    const baseMaxHp = (characterDef?.baseStats.maxHp ?? 100) + characterLevel * 2;
+    const startingWeaponId = characterDef?.startingWeaponId ?? STARTING_WEAPON_ID;
+
     set({
       phase: 'playing',
       elapsedTime: 0,
       killCount: 0,
-      player: createInitialPlayer(),
-      weapons: [{ definitionId: STARTING_WEAPON_ID, level: 1 }],
+      player: {
+        ...createInitialPlayer(),
+        hp: baseMaxHp,
+        maxHp: baseMaxHp,
+      },
+      weapons: [{ definitionId: startingWeaponId, level: 1 }],
       items: [],
       enemies: [],
       projectiles: [],
@@ -215,6 +235,9 @@ export const useGameStore = create<GameState>()((set) => ({
       banishedIds: [],
       creditsEarned: 0,
       reviveCount: revives,
+      damageTaken: 0,
+      bossKills: 0,
+      xpGemsCollected: 0,
     });
   },
 
@@ -258,13 +281,13 @@ export const useGameStore = create<GameState>()((set) => ({
           const stats = computePlayerStats(state.items, shopUpgrades);
           const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
           player.hp = Math.floor(effectiveMaxHp * 0.3);
-          return { player, reviveCount: state.reviveCount - 1 };
+          return { player, reviveCount: state.reviveCount - 1, damageTaken: state.damageTaken + effectiveDamage };
         }
         player.hp = 0;
-        return { player, phase: 'gameover' };
+        return { player, phase: 'gameover' as const, damageTaken: state.damageTaken + effectiveDamage };
       }
 
-      return { player };
+      return { player, damageTaken: state.damageTaken + effectiveDamage };
     }),
 
   selectLevelUpOption: (option) =>
@@ -333,10 +356,12 @@ export const useGameStore = create<GameState>()((set) => ({
       const alive = enemies.filter((e) => e.hp > 0);
 
       let creditGain = 0;
+      let newBossKills = 0;
       for (const d of dead) {
         const def = ENEMIES[d.definitionId];
         if (def?.isBoss) {
           creditGain += 25 + Math.floor(Math.random() * 26);
+          newBossKills += 1;
         } else {
           creditGain += 1 + Math.floor(Math.random() * 3);
         }
@@ -346,6 +371,7 @@ export const useGameStore = create<GameState>()((set) => ({
         enemies: alive,
         killCount: state.killCount + dead.length,
         creditsEarned: state.creditsEarned + creditGain,
+        bossKills: state.bossKills + newBossKills,
       };
     }),
 
