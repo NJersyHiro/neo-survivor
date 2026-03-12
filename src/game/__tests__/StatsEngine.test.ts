@@ -59,4 +59,25 @@ describe('computePlayerStats', () => {
     expect(stats.might).toBe(0);
     expect(stats.armor).toBe(0);
   });
+
+  it('applies character base stats', () => {
+    const charStats = { might: 25, area: -20 };
+    const stats = computePlayerStats([], undefined, charStats);
+    expect(stats.might).toBe(25);
+    expect(stats.area).toBe(-20);
+  });
+
+  it('applies character upgrade level bonuses', () => {
+    const stats = computePlayerStats([], undefined, {}, 3);
+    expect(stats.might).toBe(6);
+    expect(stats.moveSpeed).toBe(6);
+  });
+
+  it('stacks character stats with items and shop upgrades', () => {
+    const items: ItemInstance[] = [{ definitionId: 'energy_cell', level: 2 }];
+    const charStats = { might: 10 };
+    const stats = computePlayerStats(items, { power_core: 1 }, charStats, 2);
+    expect(stats.might).toBe(39);
+    expect(stats.moveSpeed).toBe(4);
+  });
 });

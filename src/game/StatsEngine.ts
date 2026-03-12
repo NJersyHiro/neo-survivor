@@ -23,7 +23,12 @@ const STAT_KEYS: StatKey[] = [
   'moveSpeed', 'magnet', 'luck', 'growth',
 ];
 
-export function computePlayerStats(items: ItemInstance[], shopUpgrades?: Record<string, number>): ComputedStats {
+export function computePlayerStats(
+  items: ItemInstance[],
+  shopUpgrades?: Record<string, number>,
+  characterStats?: Partial<Record<StatKey, number>>,
+  characterUpgradeLevel?: number,
+): ComputedStats {
   const stats: ComputedStats = {
     might: 0,
     armor: 0,
@@ -39,6 +44,23 @@ export function computePlayerStats(items: ItemInstance[], shopUpgrades?: Record<
     growth: 0,
   };
 
+  // 1. Character base stats
+  if (characterStats) {
+    for (const key of STAT_KEYS) {
+      const bonus = characterStats[key];
+      if (bonus !== undefined) {
+        stats[key] += bonus;
+      }
+    }
+  }
+
+  // 2. Character upgrade bonuses
+  if (characterUpgradeLevel) {
+    stats.might += characterUpgradeLevel * 2;
+    stats.moveSpeed += characterUpgradeLevel * 2;
+  }
+
+  // 3. Passive items
   for (const item of items) {
     const def = ITEMS[item.definitionId];
     if (!def) continue;
@@ -51,6 +73,7 @@ export function computePlayerStats(items: ItemInstance[], shopUpgrades?: Record<
     }
   }
 
+  // 4. Shop upgrades
   if (shopUpgrades) {
     for (const [id, level] of Object.entries(shopUpgrades)) {
       const def = UPGRADES[id];
