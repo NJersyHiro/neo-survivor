@@ -7,60 +7,102 @@ describe('useMetaStore', () => {
     useMetaStore.getState().resetAll();
   });
 
-  it('initializes with zero credits and empty upgrades', () => {
+  it('initializes with kai unlocked and selected', () => {
     const state = useMetaStore.getState();
-    expect(state.credits).toBe(0);
-    expect(state.upgrades).toEqual({});
-    expect(state.stats.totalKills).toBe(0);
-    expect(state.stats.totalRuns).toBe(0);
+    expect(state.unlockedIds).toContain('kai');
+    expect(state.selectedCharacterId).toBe('kai');
+    expect(state.characterLevels).toEqual({});
   });
 
-  it('addCredits increases balance', () => {
-    useMetaStore.getState().addCredits(100);
-    expect(useMetaStore.getState().credits).toBe(100);
+  it('selectCharacter updates selectedCharacterId', () => {
+    useMetaStore.setState({ unlockedIds: ['kai', 'vex'] });
+    useMetaStore.getState().selectCharacter('vex');
+    expect(useMetaStore.getState().selectedCharacterId).toBe('vex');
   });
 
-  it('purchaseUpgrade deducts credits and increments level', () => {
-    useMetaStore.getState().addCredits(1000);
-    const success = useMetaStore.getState().purchaseUpgrade('power_core');
-    expect(success).toBe(true);
-    expect(useMetaStore.getState().getUpgradeLevel('power_core')).toBe(1);
-    expect(useMetaStore.getState().credits).toBe(960); // 1000 - 40*1
-  });
-
-  it('purchaseUpgrade fails with insufficient credits', () => {
-    useMetaStore.getState().addCredits(10);
-    const success = useMetaStore.getState().purchaseUpgrade('power_core');
-    expect(success).toBe(false);
-    expect(useMetaStore.getState().getUpgradeLevel('power_core')).toBe(0);
-  });
-
-  it('purchaseUpgrade fails when maxed', () => {
-    useMetaStore.getState().addCredits(100000);
-    useMetaStore.getState().purchaseUpgrade('revival_kit'); // max 1
-    const success = useMetaStore.getState().purchaseUpgrade('revival_kit');
-    expect(success).toBe(false);
-    expect(useMetaStore.getState().getUpgradeLevel('revival_kit')).toBe(1);
-  });
-
-  it('recordRunStats accumulates lifetime stats and credits', () => {
-    useMetaStore.getState().recordRunStats(50, 300, 150);
-    const state = useMetaStore.getState();
-    expect(state.stats.totalKills).toBe(50);
-    expect(state.stats.totalRuns).toBe(1);
-    expect(state.stats.totalTimePlayed).toBe(300);
-    expect(state.credits).toBe(150);
-  });
-
-  it('load hydrates from SaveManager', async () => {
-    localStorage.setItem('neo_survivor_save', JSON.stringify({
-      version: 1, credits: 500, upgrades: { power_core: 2 },
-      stats: { totalKills: 200, totalRuns: 10, totalTimePlayed: 6000 },
-      unlockedIds: [],
-    }));
-    await useMetaStore.getState().load();
+  it('unlockCharacter deducts credits and adds to unlockedIds', () => {
+    useMetaStore.setState({ credits: 2000 });
+    const result = useMetaStore.getState().unlockCharacter('vex');
+    expect(result).toBe(true);
+    expect(useMetaStore.getState().unlockedIds).toContain('vex');
     expect(useMetaStore.getState().credits).toBe(500);
-    expect(useMetaStore.getState().getUpgradeLevel('power_core')).toBe(2);
-    expect(useMetaStore.getState().stats.totalRuns).toBe(10);
+  });
+
+  it('unlockCharacter fails with insufficient credits', () => {
+    useMetaStore.setState({ credits: 100 });
+    const result = useMetaStore.getState().unlockCharacter('vex');
+    expect(result).toBe(false);
+    expect(useMetaStore.getState().unlockedIds).not.toContain('vex');
+  });
+
+  it('unlockCharacter fails if already unlocked', () => {
+    useMetaStore.setState({ credits: 5000, unlockedIds: ['kai', 'vex'] });
+    const result = useMetaStore.getState().unlockCharacter('vex');
+    expect(result).toBe(false);
+  });
+
+  it('upgradeCharacter increments level and deducts credits', () => {
+    useMetaStore.setState({ credits: 1000, unlockedIds: ['kai'] });
+    const result = useMetaStore.getState().upgradeCharacter('kai');
+    expect(result).toBe(true);
+    expect(useMetaStore.getState().characterLevels.kai).toBe(1);
+    expect(useMetaStore.getState().credits).toBe(500);
+  });
+
+  it('upgradeCharacter fails at max level', () => {
+    useMetaStore.setState({
+      credits: 10000, unlockedIds: ['kai'],
+      characterLevels: { kai: 5 },
+    });
+    const result = useMetaStore.getState().upgradeCharacter('kai');
+    expect(result).toBe(false);
+  });
+
+  it('upgradeCharacter fails if not unlocked', () => {
+    useMetaStore.setState({ credits: 10000 });
+    const result = useMetaStore.getState().upgradeCharacter('vex');
+    expect(result).toBe(false);
+  });
+
+  it('recordRunStats updates new lifetime stats', () => {
+    useMetaStore.getState().recordRunStats(10, 300, 50, {
+      damageTaken: 100, bossKills: 1, xpGemsCollected: 50, playerLevel: 8,
+    });
+    const stats = useMetaStore.getState().stats;
+    expect(stats.totalDamageTaken).toBe(100);
+    expect(stats.totalBossKills).toBe(1);
+    expect(stats.totalXPGemsCollected).toBe(50);
+    expect(stats.bestTime).toBe(300);
+    expect(stats.bestLevel).toBe(8);
+  });
+
+  it('recordRunStats keeps best values via Math.max', () => {
+    useMetaStore.getState().recordRunStats(10, 600, 50, {
+      damageTaken: 0, bossKills: 0, xpGemsCollected: 0, playerLevel: 20,
+    });
+    useMetaStore.getState().recordRunStats(10, 200, 50, {
+      damageTaken: 0, bossKills: 0, xpGemsCollected: 0, playerLevel: 5,
+    });
+    expect(useMetaStore.getState().stats.bestTime).toBe(600);
+    expect(useMetaStore.getState().stats.bestLevel).toBe(20);
+  });
+
+  it('checkUnlocks returns newly unlocked character IDs', () => {
+    useMetaStore.setState({
+      stats: {
+        totalKills: 500, totalRuns: 15, totalTimePlayed: 5000,
+        totalDamageTaken: 2000, totalBossKills: 3, totalXPGemsCollected: 600,
+        bestTime: 600, bestLevel: 20,
+      },
+      unlockedIds: ['kai'],
+    });
+    const newlyUnlocked = useMetaStore.getState().checkUnlocks();
+    expect(newlyUnlocked).toHaveLength(7);
+    expect(useMetaStore.getState().unlockedIds).toHaveLength(8);
+  });
+
+  it('checkUnlocks returns empty array when nothing new to unlock', () => {
+    const newlyUnlocked = useMetaStore.getState().checkUnlocks();
+    expect(newlyUnlocked).toEqual([]);
   });
 });
