@@ -57,6 +57,12 @@ export default function XPGemRenderer() {
       }
     }
 
+    if (collectedIds.length > 0) {
+      useGameStore.setState((s) => ({
+        xpGemsCollected: s.xpGemsCollected + collectedIds.length,
+      }));
+    }
+
     if (totalXP > 0) {
       SoundManager.pickupXP();
       state.addXP(totalXP);
