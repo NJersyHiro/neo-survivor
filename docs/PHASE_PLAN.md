@@ -61,11 +61,10 @@ Development is split into 6 phases, each producing a playable build. Earlier pha
 
 - [ ] Currency system: Credits drop from enemies, bonus on run end
 - [ ] Shop screen: permanent stat upgrades (PowerUps) with escalating costs
-- [ ] 4+ playable characters with unique starting weapons and stats
-- [ ] Character special attacks with cooldown gauge
-- [ ] Character gacha system (in-game currency only)
-- [ ] Duplicate G-Rank bonuses
-- [ ] Achievement system: unlock characters/stages via challenges
+- [ ] 8 playable characters with unique starting weapons and stats
+- [ ] Character unlock system: achievements + credit purchase
+- [ ] Character upgrade levels (5 levels per character)
+- [ ] Achievement tracking via lifetime stats
 - [ ] Persistent save system (localStorage + Capacitor Preferences)
 - [ ] Main menu with mode/character/stage selection
 
