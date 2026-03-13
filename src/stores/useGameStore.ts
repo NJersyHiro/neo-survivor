@@ -231,6 +231,10 @@ export const useGameStore = create<GameState>()((set) => ({
     const characterLevel = meta.characterLevels[characterId] ?? 0;
     const baseMaxHp = (characterDef?.baseStats.maxHp ?? 100) + characterLevel * 2;
     const startingWeaponId = characterDef?.startingWeaponId ?? STARTING_WEAPON_ID;
+    // Compute effective max HP including shop upgrades so player starts at full HP
+    // Pass empty items and no character stats (character maxHp is already in baseMaxHp)
+    const startStats = computePlayerStats([], meta.upgrades);
+    const effectiveMaxHp = Math.round(baseMaxHp * (1 + startStats.maxHp / 100));
 
     set({
       phase: 'playing',
@@ -238,7 +242,7 @@ export const useGameStore = create<GameState>()((set) => ({
       killCount: 0,
       player: {
         ...createInitialPlayer(),
-        hp: baseMaxHp,
+        hp: effectiveMaxHp,
         maxHp: baseMaxHp,
       },
       weapons: [{ definitionId: startingWeaponId, level: 1 }],
