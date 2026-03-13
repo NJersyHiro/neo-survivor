@@ -167,10 +167,17 @@ export default function MainMenu() {
                 useMetaStore.setState({ unlockedIds: [...ALL_CHARACTER_IDS] });
                 const s = useMetaStore.getState();
                 void SaveManager.save({
-                  version: 2, credits: s.credits, upgrades: s.upgrades,
+                  version: 3, credits: s.credits, upgrades: s.upgrades,
                   stats: { ...s.stats }, unlockedIds: [...ALL_CHARACTER_IDS],
                   selectedCharacterId: s.selectedCharacterId,
                   characterLevels: { ...s.characterLevels },
+                  unlockedWeaponIds: [...(s.unlockedWeaponIds ?? ['plasma_bolt'])],
+                  unlockedItemIds: [...(s.unlockedItemIds ?? ['energy_cell', 'shield_matrix', 'magnet_implant'])],
+                  unlockedStageIds: [...(s.unlockedStageIds ?? ['neon_district'])],
+                  hyperModeStageIds: [...(s.hyperModeStageIds ?? [])],
+                  selectedStageId: s.selectedStageId ?? 'neon_district',
+                  perCharacterStats: { ...(s.perCharacterStats ?? {}) },
+                  perWeaponStats: { ...(s.perWeaponStats ?? {}) },
                 });
               }}
               style={{

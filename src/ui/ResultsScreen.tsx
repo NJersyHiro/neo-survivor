@@ -36,6 +36,12 @@ export default function ResultsScreen() {
       bossKills,
       xpGemsCollected,
       playerLevel: level,
+      hpRecovered: 0,
+      creditsEarned: totalCredits,
+      maxWeaponsHeld: weapons.length,
+      hasEvolved: false,
+      characterId: useMetaStore.getState().selectedCharacterId,
+      weaponMaxLevels: Object.fromEntries(weapons.map((w) => [w.definitionId, w.level])),
     });
     const newlyUnlocked = useMetaStore.getState().checkUnlocks();
     if (newlyUnlocked.length > 0) {

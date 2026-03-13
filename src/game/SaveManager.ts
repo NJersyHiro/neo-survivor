@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'neo_survivor_save';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 export interface SaveData {
   version: number;
@@ -14,10 +14,21 @@ export interface SaveData {
     totalXPGemsCollected: number;
     bestTime: number;
     bestLevel: number;
+    totalHPRecovered: number;
+    bestCreditsInRun: number;
+    hasEvolved: boolean;
+    maxWeaponsHeld: number;
   };
   unlockedIds: string[];
   selectedCharacterId: string;
   characterLevels: Record<string, number>;
+  unlockedWeaponIds: string[];
+  unlockedItemIds: string[];
+  unlockedStageIds: string[];
+  hyperModeStageIds: string[];
+  selectedStageId: string;
+  perCharacterStats: Record<string, { bestTime: number }>;
+  perWeaponStats: Record<string, { maxLevel: number }>;
 }
 
 function migrateV1ToV2(data: Record<string, unknown>): SaveData {
@@ -39,10 +50,61 @@ function migrateV1ToV2(data: Record<string, unknown>): SaveData {
       totalXPGemsCollected: stats.totalXPGemsCollected ?? 0,
       bestTime: stats.bestTime ?? 0,
       bestLevel: stats.bestLevel ?? 0,
+      totalHPRecovered: 0,
+      bestCreditsInRun: 0,
+      hasEvolved: false,
+      maxWeaponsHeld: 0,
     },
     unlockedIds,
     selectedCharacterId: 'kai',
     characterLevels: {},
+    unlockedWeaponIds: ['plasma_bolt'],
+    unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
+    unlockedStageIds: ['neon_district'],
+    hyperModeStageIds: [],
+    selectedStageId: 'neon_district',
+    perCharacterStats: {},
+    perWeaponStats: {},
+  };
+}
+
+function migrateV2ToV3(data: SaveData): SaveData {
+  const unlockedCharIds = data.unlockedIds ?? ['kai'];
+  const characterWeaponMap: Record<string, string> = {
+    kai: 'plasma_bolt', vex: 'neon_whip', rhea: 'cyber_shuriken',
+    zion: 'pulse_rifle', nova: 'blade_drone', tank: 'ion_orbit',
+    sage: 'volt_chain', flux: 'gravity_bomb',
+  };
+  const unlockedWeaponIds = ['plasma_bolt'];
+  for (const charId of unlockedCharIds) {
+    const weaponId = characterWeaponMap[charId];
+    if (weaponId && !unlockedWeaponIds.includes(weaponId)) {
+      unlockedWeaponIds.push(weaponId);
+    }
+  }
+  const unlockedItemIds = ['energy_cell', 'shield_matrix', 'magnet_implant'];
+  const statsAsUnknown = data.stats as unknown as Record<string, unknown>;
+  if ((statsAsUnknown.bestTime as number) >= 60) unlockedItemIds.push('nano_repair');
+  if ((statsAsUnknown.bestLevel as number) >= 5) unlockedItemIds.push('cyber_boots');
+  if ((statsAsUnknown.bestLevel as number) >= 10) unlockedItemIds.push('growth_serum');
+
+  return {
+    ...data,
+    version: 3,
+    stats: {
+      ...data.stats,
+      totalHPRecovered: (data.stats as Record<string, unknown>).totalHPRecovered as number ?? 0,
+      bestCreditsInRun: (data.stats as Record<string, unknown>).bestCreditsInRun as number ?? 0,
+      hasEvolved: (data.stats as Record<string, unknown>).hasEvolved as boolean ?? false,
+      maxWeaponsHeld: (data.stats as Record<string, unknown>).maxWeaponsHeld as number ?? 0,
+    },
+    unlockedWeaponIds,
+    unlockedItemIds,
+    unlockedStageIds: data.unlockedStageIds ?? ['neon_district'],
+    hyperModeStageIds: data.hyperModeStageIds ?? [],
+    selectedStageId: data.selectedStageId ?? 'neon_district',
+    perCharacterStats: data.perCharacterStats ?? {},
+    perWeaponStats: data.perWeaponStats ?? {},
   };
 }
 
@@ -55,7 +117,14 @@ export const SaveManager = {
       const version = data.version as number;
 
       if (version === 1) {
-        const migrated = migrateV1ToV2(data);
+        const migratedV2 = migrateV1ToV2(data);
+        const migratedV3 = migrateV2ToV3(migratedV2);
+        await SaveManager.save(migratedV3);
+        return migratedV3;
+      }
+
+      if (version === 2) {
+        const migrated = migrateV2ToV3(data as unknown as SaveData);
         await SaveManager.save(migrated);
         return migrated;
       }

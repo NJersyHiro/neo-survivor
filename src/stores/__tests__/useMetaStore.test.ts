@@ -66,6 +66,8 @@ describe('useMetaStore', () => {
   it('recordRunStats updates new lifetime stats', () => {
     useMetaStore.getState().recordRunStats(10, 300, 50, {
       damageTaken: 100, bossKills: 1, xpGemsCollected: 50, playerLevel: 8,
+      hpRecovered: 0, creditsEarned: 50, maxWeaponsHeld: 1,
+      hasEvolved: false, characterId: 'kai', weaponMaxLevels: {},
     });
     const stats = useMetaStore.getState().stats;
     expect(stats.totalDamageTaken).toBe(100);
@@ -78,12 +80,31 @@ describe('useMetaStore', () => {
   it('recordRunStats keeps best values via Math.max', () => {
     useMetaStore.getState().recordRunStats(10, 600, 50, {
       damageTaken: 0, bossKills: 0, xpGemsCollected: 0, playerLevel: 20,
+      hpRecovered: 0, creditsEarned: 50, maxWeaponsHeld: 1,
+      hasEvolved: false, characterId: 'kai', weaponMaxLevels: {},
     });
     useMetaStore.getState().recordRunStats(10, 200, 50, {
       damageTaken: 0, bossKills: 0, xpGemsCollected: 0, playerLevel: 5,
+      hpRecovered: 0, creditsEarned: 50, maxWeaponsHeld: 1,
+      hasEvolved: false, characterId: 'kai', weaponMaxLevels: {},
     });
     expect(useMetaStore.getState().stats.bestTime).toBe(600);
     expect(useMetaStore.getState().stats.bestLevel).toBe(20);
+  });
+
+  it('recordRunStats updates new v3 stats', () => {
+    useMetaStore.getState().recordRunStats(5, 120, 30, {
+      damageTaken: 50, bossKills: 0, xpGemsCollected: 20, playerLevel: 3,
+      hpRecovered: 75, creditsEarned: 30, maxWeaponsHeld: 2,
+      hasEvolved: true, characterId: 'kai', weaponMaxLevels: { plasma_bolt: 4 },
+    });
+    const state = useMetaStore.getState();
+    expect(state.stats.totalHPRecovered).toBe(75);
+    expect(state.stats.bestCreditsInRun).toBe(30);
+    expect(state.stats.hasEvolved).toBe(true);
+    expect(state.stats.maxWeaponsHeld).toBe(2);
+    expect(state.perCharacterStats['kai']?.bestTime).toBe(120);
+    expect(state.perWeaponStats['plasma_bolt']?.maxLevel).toBe(4);
   });
 
   it('checkUnlocks returns newly unlocked character IDs', () => {
@@ -92,6 +113,7 @@ describe('useMetaStore', () => {
         totalKills: 500, totalRuns: 15, totalTimePlayed: 5000,
         totalDamageTaken: 2000, totalBossKills: 3, totalXPGemsCollected: 600,
         bestTime: 600, bestLevel: 20,
+        totalHPRecovered: 0, bestCreditsInRun: 0, hasEvolved: false, maxWeaponsHeld: 1,
       },
       unlockedIds: ['kai'],
     });
@@ -103,5 +125,24 @@ describe('useMetaStore', () => {
   it('checkUnlocks returns empty array when nothing new to unlock', () => {
     const newlyUnlocked = useMetaStore.getState().checkUnlocks();
     expect(newlyUnlocked).toEqual([]);
+  });
+
+  it('checkAllUnlocks unlocks weapons when character is unlocked', () => {
+    useMetaStore.setState({
+      stats: {
+        totalKills: 500, totalRuns: 15, totalTimePlayed: 5000,
+        totalDamageTaken: 2000, totalBossKills: 3, totalXPGemsCollected: 600,
+        bestTime: 600, bestLevel: 20,
+        totalHPRecovered: 0, bestCreditsInRun: 0, hasEvolved: false, maxWeaponsHeld: 1,
+      },
+      unlockedIds: ['kai'],
+      unlockedWeaponIds: ['plasma_bolt'],
+      unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
+      unlockedStageIds: ['neon_district'],
+    });
+    const unlocked = useMetaStore.getState().checkAllUnlocks();
+    // Characters should be unlocked, and their weapons too
+    expect(useMetaStore.getState().unlockedIds.length).toBeGreaterThan(1);
+    expect(unlocked.length).toBeGreaterThan(0);
   });
 });
