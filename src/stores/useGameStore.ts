@@ -58,6 +58,11 @@ interface GameState {
   damageTaken: number;
   bossKills: number;
   xpGemsCollected: number;
+  hpRecovered: number;
+  maxWeaponsHeld: number;
+  hasEvolvedThisRun: boolean;
+  weaponMaxLevels: Record<string, number>;
+  razorWireTimer: number;
 
   reset: () => void;
   startRun: () => void;
@@ -81,6 +86,7 @@ interface GameState {
   collectChest: (id: string) => void;
   movePlayer: (dx: number, dz: number, delta: number) => void;
   healPlayer: (amount: number) => void;
+  tickRazorWire: (delta: number) => void;
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -99,6 +105,9 @@ function generateLevelUpOptions(
 ): LevelUpOption[] {
   const options: LevelUpOption[] = [];
   const banishedSet = new Set(banishedIds);
+  const meta = useMetaStore.getState();
+  const availableWeaponIds = BASE_WEAPON_IDS.filter((id) => meta.unlockedWeaponIds.includes(id));
+  const availableItemIds = ALL_ITEM_IDS.filter((id) => meta.unlockedItemIds.includes(id));
 
   // Offer upgrades for owned weapons below max level (filter banished)
   for (const w of weapons) {
@@ -116,7 +125,7 @@ function generateLevelUpOptions(
   // Offer new weapons if slots < 6
   if (weapons.length < 6) {
     const ownedIds = new Set(weapons.map((w) => w.definitionId));
-    for (const id of BASE_WEAPON_IDS) {
+    for (const id of availableWeaponIds) {
       if (!ownedIds.has(id) && !banishedSet.has(id)) {
         options.push({
           type: 'new_weapon',
@@ -143,7 +152,7 @@ function generateLevelUpOptions(
   // Offer new items if slots < 6
   if (items.length < 6) {
     const ownedItemIds = new Set(items.map((i) => i.definitionId));
-    for (const id of ALL_ITEM_IDS) {
+    for (const id of availableItemIds) {
       if (!ownedItemIds.has(id) && !banishedSet.has(id)) {
         options.push({
           type: 'new_item',
@@ -178,6 +187,11 @@ export const useGameStore = create<GameState>()((set) => ({
   damageTaken: 0,
   bossKills: 0,
   xpGemsCollected: 0,
+  hpRecovered: 0,
+  maxWeaponsHeld: 1,
+  hasEvolvedThisRun: false,
+  weaponMaxLevels: {} as Record<string, number>,
+  razorWireTimer: 0,
 
   reset: () =>
     set({
@@ -201,6 +215,11 @@ export const useGameStore = create<GameState>()((set) => ({
       damageTaken: 0,
       bossKills: 0,
       xpGemsCollected: 0,
+      hpRecovered: 0,
+      maxWeaponsHeld: 1,
+      hasEvolvedThisRun: false,
+      weaponMaxLevels: {} as Record<string, number>,
+      razorWireTimer: 0,
     }),
 
   startRun: () => {
@@ -238,6 +257,11 @@ export const useGameStore = create<GameState>()((set) => ({
       damageTaken: 0,
       bossKills: 0,
       xpGemsCollected: 0,
+      hpRecovered: 0,
+      maxWeaponsHeld: 1,
+      hasEvolvedThisRun: false,
+      weaponMaxLevels: {} as Record<string, number>,
+      razorWireTimer: 0,
     });
   },
 
@@ -292,29 +316,35 @@ export const useGameStore = create<GameState>()((set) => ({
 
   selectLevelUpOption: (option) =>
     set((state) => {
+      const weaponMaxLevels = { ...state.weaponMaxLevels };
+
       if (option.type === 'new_item' && option.itemId) {
         const items = [...state.items];
         items.push({ definitionId: option.itemId, level: 1 });
-        return { items, phase: 'playing', levelUpOptions: [] };
+        return { items, phase: 'playing', levelUpOptions: [], weaponMaxLevels };
       } else if (option.type === 'upgrade_item' && option.itemId) {
         const items = state.items.map((i) =>
           i.definitionId === option.itemId ? { ...i, level: option.level } : i
         );
-        return { items, phase: 'playing', levelUpOptions: [] };
+        return { items, phase: 'playing', levelUpOptions: [], weaponMaxLevels };
       }
 
       const weapons = [...state.weapons];
 
       if (option.type === 'new_weapon' && option.weaponId) {
         weapons.push({ definitionId: option.weaponId, level: 1 });
+        weaponMaxLevels[option.weaponId] = Math.max(weaponMaxLevels[option.weaponId] ?? 0, 1);
       } else if (option.type === 'upgrade_weapon' && option.weaponId) {
         const idx = weapons.findIndex((w) => w.definitionId === option.weaponId);
         if (idx !== -1) {
           weapons[idx] = { ...weapons[idx]!, level: option.level };
         }
+        weaponMaxLevels[option.weaponId] = Math.max(weaponMaxLevels[option.weaponId] ?? 0, option.level);
       }
 
-      return { weapons, phase: 'playing', levelUpOptions: [] };
+      const maxWeaponsHeld = Math.max(state.maxWeaponsHeld, weapons.length);
+
+      return { weapons, phase: 'playing', levelUpOptions: [], weaponMaxLevels, maxWeaponsHeld };
     }),
 
   reroll: () =>
@@ -349,8 +379,15 @@ export const useGameStore = create<GameState>()((set) => ({
 
   damageEnemy: (id, damage) =>
     set((state) => {
+      const shopUpgrades = useMetaStore.getState().upgrades;
+      const stats = computePlayerStats(state.items, shopUpgrades);
+
+      let finalDamage = damage;
+      const isCrit = stats.critChance > 0 && Math.random() * 100 < stats.critChance;
+      if (isCrit) finalDamage *= 2;
+
       const enemies = state.enemies.map((e) =>
-        e.id === id ? { ...e, hp: e.hp - damage } : e
+        e.id === id ? { ...e, hp: e.hp - finalDamage } : e
       );
       const dead = enemies.filter((e) => e.hp <= 0);
       const alive = enemies.filter((e) => e.hp > 0);
@@ -367,11 +404,24 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
+      let player = state.player;
+      let actualHeal = 0;
+      if (stats.lifesteal > 0 && finalDamage > 0) {
+        const healAmount = finalDamage * stats.lifesteal / 100;
+        const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
+        actualHeal = Math.min(healAmount, effectiveMaxHp - player.hp);
+        if (actualHeal > 0) {
+          player = { ...player, hp: player.hp + actualHeal };
+        }
+      }
+
       return {
         enemies: alive,
         killCount: state.killCount + dead.length,
         creditsEarned: state.creditsEarned + creditGain,
         bossKills: state.bossKills + newBossKills,
+        player,
+        hpRecovered: state.hpRecovered + Math.max(0, actualHeal),
       };
     }),
 
@@ -414,7 +464,7 @@ export const useGameStore = create<GameState>()((set) => ({
         );
         // Remove consumed item
         const items = state.items.filter((i) => i.definitionId !== evolution.consumedItemId);
-        return { chests, weapons, items };
+        return { chests, weapons, items, hasEvolvedThisRun: true };
       }
 
       // No evolution: level up a random owned weapon or item by 1
@@ -461,7 +511,56 @@ export const useGameStore = create<GameState>()((set) => ({
       const shopUpgrades = useMetaStore.getState().upgrades;
       const stats = computePlayerStats(state.items, shopUpgrades);
       const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
+      const actualHeal = Math.min(amount, effectiveMaxHp - player.hp);
       player.hp = Math.min(player.hp + amount, effectiveMaxHp);
-      return { player };
+      return { player, hpRecovered: state.hpRecovered + Math.max(0, actualHeal) };
+    }),
+
+  tickRazorWire: (delta) =>
+    set((state) => {
+      const razorWireItem = state.items.find((i) => i.definitionId === 'razor_wire');
+      if (!razorWireItem) return {};
+
+      let timer = state.razorWireTimer - delta;
+      if (timer > 0) return { razorWireTimer: timer };
+
+      timer = 1.0; // Reset timer to 1 second interval
+      const shopUpgrades = useMetaStore.getState().upgrades;
+      const stats = computePlayerStats(state.items, shopUpgrades);
+      const dmg = razorWireItem.level * 5 * (1 + stats.might / 100);
+      const playerPos = state.player.position;
+
+      const enemies = state.enemies.map((e) => {
+        const dx = e.position.x - playerPos.x;
+        const dz = e.position.z - playerPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 1.5) {
+          return { ...e, hp: e.hp - dmg };
+        }
+        return e;
+      });
+
+      const dead = enemies.filter((e) => e.hp <= 0);
+      const alive = enemies.filter((e) => e.hp > 0);
+
+      let creditGain = 0;
+      let newBossKills = 0;
+      for (const d of dead) {
+        const def = ENEMIES[d.definitionId];
+        if (def?.isBoss) {
+          creditGain += 25 + Math.floor(Math.random() * 26);
+          newBossKills += 1;
+        } else {
+          creditGain += 1 + Math.floor(Math.random() * 3);
+        }
+      }
+
+      return {
+        enemies: alive,
+        killCount: state.killCount + dead.length,
+        creditsEarned: state.creditsEarned + creditGain,
+        bossKills: state.bossKills + newBossKills,
+        razorWireTimer: timer,
+      };
     }),
 }));

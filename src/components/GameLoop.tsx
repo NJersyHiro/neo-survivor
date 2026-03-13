@@ -13,6 +13,8 @@ export default function GameLoop() {
       if (stats.recovery > 0) {
         state.healPlayer(stats.recovery * clampedDelta);
       }
+
+      state.tickRazorWire(clampedDelta);
     }
   });
 

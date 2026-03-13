@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGameStore, xpForLevel } from '../useGameStore';
 import { useMetaStore } from '../useMetaStore';
 
@@ -9,7 +9,13 @@ describe('useGameStore', () => {
       selectedCharacterId: 'kai',
       unlockedIds: ['kai'],
       characterLevels: {},
+      unlockedWeaponIds: ['plasma_bolt'],
+      unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('initializes with correct defaults', () => {
@@ -300,5 +306,64 @@ describe('useGameStore', () => {
     });
     useGameStore.getState().damageEnemy('b1', 20);
     expect(useGameStore.getState().bossKills).toBe(1);
+  });
+
+  it('damageEnemy applies crit damage when Math.random returns 0', () => {
+    useGameStore.getState().startRun();
+    // crit_module gives critChance: 8 per level
+    useGameStore.setState({
+      items: [{ definitionId: 'crit_module', level: 1 }],
+    });
+    useGameStore.getState().spawnEnemy({
+      id: '1', definitionId: 'drone',
+      position: { x: 0, y: 0, z: 0 }, hp: 100, maxHp: 100,
+    });
+    // Mock Math.random to return 0 → guaranteed crit (0 * 100 = 0 < 8)
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    useGameStore.getState().damageEnemy('1', 10);
+    // Crit doubles damage: 10 * 2 = 20, so hp should be 80
+    expect(useGameStore.getState().enemies[0]?.hp).toBe(80);
+  });
+
+  it('damageEnemy heals player via lifesteal', () => {
+    useGameStore.getState().startRun();
+    // Set player to 50 HP and give them a lifesteal item (reflux_core: lifesteal 5 per level)
+    useGameStore.setState({
+      player: { ...useGameStore.getState().player, hp: 50 },
+      items: [{ definitionId: 'reflux_core', level: 1 }],
+    });
+    useGameStore.getState().spawnEnemy({
+      id: '1', definitionId: 'drone',
+      position: { x: 0, y: 0, z: 0 }, hp: 1000, maxHp: 1000,
+    });
+    // Mock Math.random to return 0.99 to avoid crit triggering
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const hpBefore = useGameStore.getState().player.hp;
+    useGameStore.getState().damageEnemy('1', 100);
+    const hpAfter = useGameStore.getState().player.hp;
+    expect(hpAfter).toBeGreaterThan(hpBefore);
+    expect(useGameStore.getState().hpRecovered).toBeGreaterThan(0);
+  });
+
+  it('generateLevelUpOptions filters by unlocked weapons only', () => {
+    useMetaStore.setState({
+      selectedCharacterId: 'kai',
+      unlockedIds: ['kai'],
+      characterLevels: {},
+      unlockedWeaponIds: ['plasma_bolt'],
+      unlockedItemIds: ['energy_cell'],
+    });
+    useGameStore.getState().startRun();
+    // Trigger a level-up
+    const xpNeeded = xpForLevel(1);
+    useGameStore.getState().addXP(xpNeeded);
+    const state = useGameStore.getState();
+    expect(state.phase).toBe('levelup');
+    // No new_weapon option should offer anything other than plasma_bolt
+    // plasma_bolt is already owned so no new_weapon options expected
+    const newWeaponOptions = state.levelUpOptions.filter(
+      (o) => o.type === 'new_weapon' && o.weaponId !== 'plasma_bolt'
+    );
+    expect(newWeaponOptions).toHaveLength(0);
   });
 });
