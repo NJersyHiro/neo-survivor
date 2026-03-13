@@ -53,8 +53,8 @@ export function useInput() {
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
       if (touchIdRef.current === null || !touchStart.current) return;
+      e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch && touch.identifier === touchIdRef.current) {

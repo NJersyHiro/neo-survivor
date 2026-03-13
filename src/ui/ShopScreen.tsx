@@ -11,7 +11,9 @@ export default function ShopScreen() {
 
   return (
     <div style={{
-      flex: 1, padding: '24px 16px', width: '100%', maxWidth: 600, overflow: 'auto',
+      flex: 1, padding: '24px 16px', paddingBottom: 'calc(var(--sab) + 24px)',
+      width: '100%', maxWidth: 600, overflow: 'auto',
+      WebkitOverflowScrolling: 'touch' as const,
     }}>
       {/* Stat Upgrades */}
       <div style={{

@@ -94,6 +94,7 @@ export default function ResultsScreen() {
       <div style={{
         color: titleColor, fontSize: 40, fontWeight: 'bold', marginBottom: 16,
         textShadow: `0 0 20px ${titleColor}, 0 0 40px ${titleColor}`,
+        textAlign: 'center', width: '100%',
       }}>
         {titleText}
       </div>
