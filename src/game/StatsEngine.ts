@@ -15,12 +15,15 @@ export interface ComputedStats {
   magnet: number;
   luck: number;
   growth: number;
+  critChance: number;
+  lifesteal: number;
 }
 
 const STAT_KEYS: StatKey[] = [
   'might', 'armor', 'maxHp', 'recovery',
   'speed', 'area', 'cooldown', 'amount',
   'moveSpeed', 'magnet', 'luck', 'growth',
+  'critChance', 'lifesteal',
 ];
 
 export function computePlayerStats(
@@ -42,6 +45,8 @@ export function computePlayerStats(
     magnet: 0,
     luck: 0,
     growth: 0,
+    critChance: 0,
+    lifesteal: 0,
   };
 
   // 1. Character base stats

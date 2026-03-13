@@ -16,6 +16,17 @@ export interface PlayerState {
   level: number;
 }
 
+export type UnlockCondition =
+  | { type: 'character_unlocked'; characterId: string; description: string }
+  | { type: 'survive_time'; seconds: number; characterId?: string; description: string }
+  | { type: 'reach_level'; level: number; stageId?: string; description: string }
+  | { type: 'weapon_level'; weaponId: string; level: number; description: string }
+  | { type: 'total_kills'; count: number; description: string }
+  | { type: 'total_hp_recovered'; amount: number; description: string }
+  | { type: 'max_weapons_held'; count: number; description: string }
+  | { type: 'any_weapon_max_level'; description: string }
+  | { type: 'any_weapon_evolved'; description: string };
+
 export interface WeaponDefinition {
   id: string;
   name: string;
@@ -31,6 +42,7 @@ export interface WeaponDefinition {
   damagePerLevel: number;
   evolutionItemId?: string;
   evolvesInto?: string;
+  unlockCondition?: UnlockCondition | null;
 }
 
 export interface WeaponInstance {
@@ -82,7 +94,8 @@ export interface XPGemInstance {
 export type StatKey =
   | 'might' | 'armor' | 'maxHp' | 'recovery'
   | 'speed' | 'area' | 'cooldown' | 'amount'
-  | 'moveSpeed' | 'magnet' | 'luck' | 'growth';
+  | 'moveSpeed' | 'magnet' | 'luck' | 'growth'
+  | 'critChance' | 'lifesteal';
 
 export interface ItemDefinition {
   id: string;
@@ -91,6 +104,7 @@ export interface ItemDefinition {
   category: 'healing' | 'stat' | 'utility';
   maxLevel: number;
   stats: Partial<Record<StatKey, number>>;
+  unlockCondition?: UnlockCondition | null;
 }
 
 export interface ItemInstance {

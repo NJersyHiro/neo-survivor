@@ -80,4 +80,16 @@ describe('computePlayerStats', () => {
     expect(stats.might).toBe(39);
     expect(stats.moveSpeed).toBe(4);
   });
+
+  it('should compute critChance from items', () => {
+    const items: ItemInstance[] = [{ definitionId: 'crit_module', level: 3 }];
+    const stats = computePlayerStats(items);
+    expect(stats.critChance).toBe(24); // 8 * 3
+  });
+
+  it('should compute lifesteal from items', () => {
+    const items: ItemInstance[] = [{ definitionId: 'reflux_core', level: 2 }];
+    const stats = computePlayerStats(items);
+    expect(stats.lifesteal).toBe(10); // 5 * 2
+  });
 });
