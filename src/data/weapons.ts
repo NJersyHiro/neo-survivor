@@ -30,6 +30,8 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     amount: 1,
     maxLevel: 8,
     damagePerLevel: 4,
+    evolutionItemId: 'cyber_boots',
+    evolvesInto: 'storm_lash',
   },
   cyber_shuriken: {
     id: 'cyber_shuriken',
@@ -44,6 +46,8 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     amount: 2,
     maxLevel: 8,
     damagePerLevel: 2,
+    evolutionItemId: 'ammo_belt',
+    evolvesInto: 'shuriken_storm',
   },
 
   // --- New base weapons ---
@@ -92,6 +96,8 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     amount: 1,
     maxLevel: 8,
     damagePerLevel: 8,
+    evolutionItemId: 'magnet_implant',
+    evolvesInto: 'black_hole',
   },
   volt_chain: {
     id: 'volt_chain',
@@ -106,6 +112,8 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     amount: 1,
     maxLevel: 8,
     damagePerLevel: 2,
+    evolutionItemId: 'crit_module',
+    evolvesInto: 'thunder_god',
   },
   blade_drone: {
     id: 'blade_drone',
@@ -120,6 +128,8 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     amount: 1,
     maxLevel: 8,
     damagePerLevel: 3,
+    evolutionItemId: 'overclock_chip',
+    evolvesInto: 'drone_swarm',
   },
 
   // --- Phase 4A base weapons ---
@@ -127,16 +137,19 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     id: 'flame_thrower', name: 'Flame Thrower', description: 'Continuous cone of fire. Rapid damage ticks.',
     category: 'melee', baseDamage: 3, cooldown: 0.15, projectileSpeed: 0, area: 2.0,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 1,
+    evolutionItemId: 'reflux_core', evolvesInto: 'inferno',
   },
   cryo_spike: {
     id: 'cryo_spike', name: 'Cryo Spike', description: 'Ice spike explodes on hit, slowing enemies.',
     category: 'ranged', baseDamage: 12, cooldown: 1.6, projectileSpeed: 12, area: 1.5,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 3,
+    evolutionItemId: 'holo_armor', evolvesInto: 'absolute_zero',
   },
   homing_missile: {
     id: 'homing_missile', name: 'Homing Missile', description: 'Slow projectile that tracks the nearest enemy.',
     category: 'ranged', baseDamage: 20, cooldown: 2.0, projectileSpeed: 6, area: 1.0,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 5,
+    evolutionItemId: 'quantum_lens', evolvesInto: 'swarm_rockets',
   },
   tesla_coil: {
     id: 'tesla_coil', name: 'Tesla Coil', description: 'Static aura damages all nearby enemies.',
@@ -207,9 +220,53 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     maxLevel: 8,
     damagePerLevel: 5,
   },
+  storm_lash: {
+    id: 'storm_lash', name: 'Storm Lash', description: 'Full-screen whip that pulls enemies inward.',
+    category: 'melee', baseDamage: 25, cooldown: 1.0, projectileSpeed: 0, area: 6.0,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 6,
+  },
+  shuriken_storm: {
+    id: 'shuriken_storm', name: 'Shuriken Storm', description: 'Spiraling shurikens with infinite pierce.',
+    category: 'multishot', baseDamage: 15, cooldown: 1.2, projectileSpeed: 8, area: 1.0,
+    pierce: 99, amount: 8, maxLevel: 8, damagePerLevel: 4,
+  },
+  thunder_god: {
+    id: 'thunder_god', name: 'Thunder God', description: 'Lightning chains to all nearby enemies. Always crits.',
+    category: 'multishot', baseDamage: 12, cooldown: 1.5, projectileSpeed: 0, area: 20.0,
+    pierce: 50, amount: 1, maxLevel: 8, damagePerLevel: 3,
+  },
+  drone_swarm: {
+    id: 'drone_swarm', name: 'Drone Swarm', description: 'Four fast-orbiting drones with massive area.',
+    category: 'melee', baseDamage: 18, cooldown: 0.6, projectileSpeed: 0, area: 4.0,
+    pierce: 99, amount: 4, maxLevel: 8, damagePerLevel: 4,
+  },
+  black_hole: {
+    id: 'black_hole', name: 'Black Hole', description: 'Creates a persistent vortex that pulls and damages enemies.',
+    category: 'ranged', baseDamage: 35, cooldown: 4.0, projectileSpeed: 0, area: 4.0,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 8,
+  },
+  inferno: {
+    id: 'inferno', name: 'Inferno', description: '360-degree flame aura. Heals on damage dealt.',
+    category: 'melee', baseDamage: 6, cooldown: 0.1, projectileSpeed: 0, area: 3.0,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 2,
+  },
+  absolute_zero: {
+    id: 'absolute_zero', name: 'Absolute Zero', description: 'Explosion freezes all enemies in blast area.',
+    category: 'ranged', baseDamage: 20, cooldown: 2.0, projectileSpeed: 12, area: 3.5,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 5,
+  },
+  swarm_rockets: {
+    id: 'swarm_rockets', name: 'Swarm Rockets', description: 'Five homing missiles that leave damage trails.',
+    category: 'ranged', baseDamage: 15, cooldown: 1.5, projectileSpeed: 8, area: 1.0,
+    pierce: 1, amount: 5, maxLevel: 8, damagePerLevel: 4,
+  },
 };
 
 export const STARTING_WEAPON_ID = 'plasma_bolt';
 export const ALL_WEAPON_IDS = Object.keys(WEAPONS);
-export const EVOLVED_WEAPON_IDS = ['singularity_core', 'death_ray', 'plasma_storm'];
+export const EVOLVED_WEAPON_IDS = [
+  'singularity_core', 'death_ray', 'plasma_storm',
+  'storm_lash', 'shuriken_storm', 'thunder_god', 'drone_swarm',
+  'black_hole', 'inferno', 'absolute_zero', 'swarm_rockets',
+];
 export const BASE_WEAPON_IDS = ALL_WEAPON_IDS.filter(id => !EVOLVED_WEAPON_IDS.includes(id));
