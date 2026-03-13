@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { WEAPONS, EVOLVED_WEAPON_IDS } from '../data/weapons';
 import { ITEMS } from '../data/items';
+import { getComputedStats } from '../hooks/useComputedStats';
+import { SoundManager } from '../game/SoundManager';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -54,9 +56,11 @@ export default function HUD() {
 
   if (phase !== 'playing' && phase !== 'levelup') return null;
 
-  const hpPercent = Math.max(0, hp / maxHp) * 100;
+  const stats = getComputedStats();
+  const effectiveMaxHp = maxHp * (1 + stats.maxHp / 100);
+  const hpPercent = Math.min(100, Math.max(0, hp / effectiveMaxHp) * 100);
   const xpPercent = Math.max(0, xp / xpToNextLevel) * 100;
-  const hpLow = hp / maxHp < 0.3;
+  const hpLow = hp / effectiveMaxHp < 0.3;
 
   return (
     <div
@@ -74,7 +78,7 @@ export default function HUD() {
       {/* Top-left: HP + Level */}
       <div style={{ position: 'absolute', top: 'calc(var(--sat) + 16px)', left: 16 }}>
         <div style={{ color: '#ff3366', fontSize: 14, marginBottom: 4 }}>
-          HP: {Math.ceil(hp)} / {maxHp}
+          HP: {Math.ceil(hp)} / {Math.round(effectiveMaxHp)}
         </div>
         <div
           style={{
@@ -122,7 +126,7 @@ export default function HUD() {
       <div
         style={{
           position: 'absolute',
-          top: 'calc(var(--sat) + 16px)',
+          top: 'calc(var(--sat) + 4px)',
           left: '50%',
           transform: 'translateX(-50%)',
           color: '#00ffff',
@@ -134,18 +138,34 @@ export default function HUD() {
         {formatTime(elapsedTime)}
       </div>
 
-      {/* Top-right: Kills */}
+      {/* Top-right: Kills + Menu */}
       <div
         style={{
           position: 'absolute',
           top: 'calc(var(--sat) + 16px)',
           right: 16,
-          color: '#ffff00',
-          fontSize: 16,
-          fontWeight: 'bold',
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
         }}
       >
-        KILLS: {killCount}
+        <div style={{ color: '#ffff00', fontSize: 16, fontWeight: 'bold' }}>
+          KILLS: {killCount}
+        </div>
+        <button
+          onClick={() => {
+            SoundManager.buttonClick();
+            useGameStore.getState().reset();
+          }}
+          style={{
+            pointerEvents: 'auto',
+            background: 'rgba(0, 0, 0, 0.6)',
+            color: '#888', border: '1px solid #444',
+            borderRadius: 4, padding: '4px 10px', fontSize: 11,
+            fontWeight: 'bold', fontFamily: "'Courier New', monospace",
+            cursor: 'pointer',
+          }}
+        >
+          MENU
+        </button>
       </div>
 
       {/* Evolution notification banner */}
