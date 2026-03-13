@@ -145,6 +145,7 @@ export default function HUD() {
           top: 'calc(var(--sat) + 16px)',
           right: 16,
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
+          pointerEvents: 'auto',
         }}
       >
         <div style={{ color: '#ffff00', fontSize: 16, fontWeight: 'bold' }}>
