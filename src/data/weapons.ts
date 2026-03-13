@@ -122,6 +122,48 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 3,
   },
 
+  // --- Phase 4A base weapons ---
+  flame_thrower: {
+    id: 'flame_thrower', name: 'Flame Thrower', description: 'Continuous cone of fire. Rapid damage ticks.',
+    category: 'melee', baseDamage: 3, cooldown: 0.15, projectileSpeed: 0, area: 2.0,
+    pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 1,
+  },
+  cryo_spike: {
+    id: 'cryo_spike', name: 'Cryo Spike', description: 'Ice spike explodes on hit, slowing enemies.',
+    category: 'ranged', baseDamage: 12, cooldown: 1.6, projectileSpeed: 12, area: 1.5,
+    pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 3,
+  },
+  homing_missile: {
+    id: 'homing_missile', name: 'Homing Missile', description: 'Slow projectile that tracks the nearest enemy.',
+    category: 'ranged', baseDamage: 20, cooldown: 2.0, projectileSpeed: 6, area: 1.0,
+    pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 5,
+  },
+  tesla_coil: {
+    id: 'tesla_coil', name: 'Tesla Coil', description: 'Static aura damages all nearby enemies.',
+    category: 'melee', baseDamage: 8, cooldown: 0.8, projectileSpeed: 0, area: 2.5,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 2,
+  },
+  ricochet_disc: {
+    id: 'ricochet_disc', name: 'Ricochet Disc', description: 'Disc bounces between enemies.',
+    category: 'ranged', baseDamage: 10, cooldown: 1.4, projectileSpeed: 10, area: 0.5,
+    pierce: 3, amount: 1, maxLevel: 8, damagePerLevel: 3,
+  },
+  photon_beam: {
+    id: 'photon_beam', name: 'Photon Beam', description: 'Straight beam pierces all enemies.',
+    category: 'ranged', baseDamage: 15, cooldown: 2.5, projectileSpeed: 20, area: 0.3,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 4,
+  },
+  scatter_mine: {
+    id: 'scatter_mine', name: 'Scatter Mine', description: 'Drops mines behind player as they move.',
+    category: 'ranged', baseDamage: 18, cooldown: 1.2, projectileSpeed: 0, area: 1.5,
+    pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 4,
+  },
+  phase_blade: {
+    id: 'phase_blade', name: 'Phase Blade', description: 'Sweeping arc slash passes through walls.',
+    category: 'melee', baseDamage: 14, cooldown: 1.0, projectileSpeed: 0, area: 2.0,
+    pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 3,
+  },
+
   // --- Evolved weapons ---
   singularity_core: {
     id: 'singularity_core',
