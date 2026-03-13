@@ -65,6 +65,36 @@ export const ITEMS: Record<string, ItemDefinition> = {
     maxLevel: 5,
     stats: { maxHp: 15 },
   },
+
+  // --- Phase 4A items ---
+  crit_module: {
+    id: 'crit_module', name: 'Crit Module', description: 'Increases critical hit chance.',
+    category: 'stat', maxLevel: 5, stats: { critChance: 8 },
+  },
+  reflux_core: {
+    id: 'reflux_core', name: 'Reflux Core', description: 'Heals a portion of damage dealt.',
+    category: 'stat', maxLevel: 5, stats: { lifesteal: 5 },
+  },
+  phase_cloak: {
+    id: 'phase_cloak', name: 'Phase Cloak', description: 'Extends invincibility after taking damage.',
+    category: 'utility', maxLevel: 5, stats: {},
+  },
+  ammo_belt: {
+    id: 'ammo_belt', name: 'Ammo Belt', description: 'Increases projectile count for all weapons.',
+    category: 'stat', maxLevel: 3, stats: { amount: 1 },
+  },
+  razor_wire: {
+    id: 'razor_wire', name: 'Razor Wire', description: 'Damages enemies that touch the player.',
+    category: 'utility', maxLevel: 5, stats: {},
+  },
+  quantum_lens: {
+    id: 'quantum_lens', name: 'Quantum Lens', description: 'Increases projectile speed.',
+    category: 'stat', maxLevel: 5, stats: { speed: 10 },
+  },
+  overclock_chip: {
+    id: 'overclock_chip', name: 'Overclock Chip', description: 'Boosts area and reduces cooldowns.',
+    category: 'stat', maxLevel: 3, stats: { area: 8, cooldown: -8 },
+  },
 };
 
 export const ALL_ITEM_IDS = Object.keys(ITEMS);
