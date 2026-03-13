@@ -3,6 +3,8 @@ import { useGameStore } from '../stores/useGameStore';
 import { useMetaStore } from '../stores/useMetaStore';
 import { WEAPONS } from '../data/weapons';
 import { CHARACTERS } from '../data/characters';
+import { ITEMS } from '../data/items';
+import { STAGES } from '../data/stages';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -36,25 +38,28 @@ export default function ResultsScreen() {
       bossKills,
       xpGemsCollected,
       playerLevel: level,
-      hpRecovered: 0,
+      hpRecovered: useGameStore.getState().hpRecovered,
       creditsEarned: totalCredits,
-      maxWeaponsHeld: weapons.length,
-      hasEvolved: false,
+      maxWeaponsHeld: useGameStore.getState().maxWeaponsHeld,
+      hasEvolved: useGameStore.getState().hasEvolvedThisRun,
       characterId: useMetaStore.getState().selectedCharacterId,
-      weaponMaxLevels: Object.fromEntries(weapons.map((w) => [w.definitionId, w.level])),
+      weaponMaxLevels: useGameStore.getState().weaponMaxLevels,
     });
-    const newlyUnlocked = useMetaStore.getState().checkUnlocks();
+    const newlyUnlocked = useMetaStore.getState().checkAllUnlocks();
     if (newlyUnlocked.length > 0) {
-      const names = newlyUnlocked.map((id) => CHARACTERS[id]?.name ?? id);
+      const names = newlyUnlocked.map((id) => {
+        if (CHARACTERS[id]) return `CHARACTER: ${CHARACTERS[id]!.name}`;
+        if (WEAPONS[id]) return `WEAPON: ${WEAPONS[id]!.name}`;
+        if (ITEMS[id]) return `ITEM: ${ITEMS[id]!.name}`;
+        if (STAGES[id]) return `STAGE: ${STAGES[id]!.name}`;
+        return id;
+      });
       setUnlockedNames(names);
       setTimeout(() => {
         setUnlockedNames([]);
-        if (action === 'retry') {
-          useGameStore.getState().startRun();
-        } else {
-          useGameStore.getState().reset();
-        }
-      }, 2000);
+        if (action === 'retry') useGameStore.getState().startRun();
+        else useGameStore.getState().reset();
+      }, 3000);
       return;
     }
     if (action === 'retry') {
@@ -76,12 +81,12 @@ export default function ResultsScreen() {
           color: '#ffff00', fontSize: 28, fontWeight: 'bold', marginBottom: 16,
           textShadow: '0 0 20px #ffff00, 0 0 40px #ffff00',
         }}>
-          CHARACTER UNLOCKED!
+          NEW UNLOCKS!
         </div>
         {unlockedNames.map((name) => (
           <div key={name} style={{
-            color: '#00ffff', fontSize: 36, fontWeight: 'bold',
-            textShadow: '0 0 20px #00ffff',
+            color: '#00ffff', fontSize: 20, fontWeight: 'bold',
+            textShadow: '0 0 20px #00ffff', marginBottom: 8,
           }}>
             {name}
           </div>

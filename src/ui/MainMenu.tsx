@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { useMetaStore } from '../stores/useMetaStore';
 import { CHARACTERS, ALL_CHARACTER_IDS } from '../data/characters';
-import { WEAPONS } from '../data/weapons';
+import { WEAPONS, BASE_WEAPON_IDS } from '../data/weapons';
+import { ALL_ITEM_IDS, ITEMS } from '../data/items';
+import { STAGES, ALL_STAGE_IDS } from '../data/stages';
 import { SaveManager } from '../game/SaveManager';
 import ShopScreen from './ShopScreen';
 import { SoundManager } from '../game/SoundManager';
@@ -24,7 +26,15 @@ export default function MainMenu() {
   const stats = useMetaStore((s) => s.stats);
   const unlockedIds = useMetaStore((s) => s.unlockedIds);
   const selectedCharacterId = useMetaStore((s) => s.selectedCharacterId);
+  const unlockedStageIds = useMetaStore((s) => s.unlockedStageIds);
+  const selectedStageId = useMetaStore((s) => s.selectedStageId);
+  const unlockedWeaponIds = useMetaStore((s) => s.unlockedWeaponIds);
+  const unlockedItemIds = useMetaStore((s) => s.unlockedItemIds);
   const [tab, setTab] = useState<'play' | 'shop' | 'achievements'>('play');
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    characters: true, weapons: false, items: false, stages: false,
+  });
+  const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => {
     void useMetaStore.getState().load();
@@ -126,27 +136,56 @@ export default function MainMenu() {
                   <div style={{ color: '#00ffff', fontSize: 9, marginBottom: isUnlocked ? 0 : 4 }}>
                     {weaponName}
                   </div>
-                  {!isUnlocked && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        SoundManager.buttonClick();
-                        useMetaStore.getState().unlockCharacter(id);
-                      }}
-                      disabled={credits < def.creditCost}
-                      style={{
-                        background: credits >= def.creditCost ? '#ffff00' : 'transparent',
-                        color: credits >= def.creditCost ? '#000' : '#ff4444',
-                        border: `1px solid ${credits >= def.creditCost ? '#ffff00' : '#ff4444'}`,
-                        borderRadius: 4, padding: '2px 6px', fontSize: 9,
-                        fontWeight: 'bold', fontFamily: "'Courier New', monospace",
-                        cursor: credits >= def.creditCost ? 'pointer' : 'default',
-                        opacity: credits >= def.creditCost ? 1 : 0.6,
-                        width: '100%',
-                      }}
-                    >
-                      {def.creditCost} CR
-                    </button>
+                  {!isUnlocked && def.unlockCondition && (
+                    <div style={{ color: '#888', fontSize: 8, marginTop: 2 }}>
+                      {def.unlockCondition.description}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Stage Select */}
+          <div style={{
+            color: '#00ffff', fontSize: 14, fontWeight: 'bold',
+            textShadow: '0 0 8px #00ffff', textAlign: 'center',
+          }}>
+            STAGE
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+            width: '100%', maxWidth: 420, padding: '0 4px',
+          }}>
+            {ALL_STAGE_IDS.map((id) => {
+              const def = STAGES[id]!;
+              const isUnlocked = unlockedStageIds.includes(id);
+              const isSelected = selectedStageId === id;
+              return (
+                <div
+                  key={id}
+                  onClick={() => {
+                    if (isUnlocked) {
+                      SoundManager.buttonClick();
+                      useMetaStore.getState().selectStage(id);
+                    }
+                  }}
+                  style={{
+                    background: isSelected ? '#112233' : '#111122',
+                    border: `2px solid ${isSelected ? '#00ffff' : isUnlocked ? '#444' : '#222'}`,
+                    borderRadius: 6, padding: '6px 4px', textAlign: 'center',
+                    cursor: isUnlocked ? 'pointer' : 'default',
+                    opacity: isUnlocked ? 1 : 0.4,
+                    boxShadow: isSelected ? '0 0 10px #00ffff' : 'none',
+                  }}
+                >
+                  <div style={{ color: isUnlocked ? '#fff' : '#666', fontSize: 10, fontWeight: 'bold' }}>
+                    {def.name}
+                  </div>
+                  {!isUnlocked && def.unlockCondition && (
+                    <div style={{ color: '#888', fontSize: 8, marginTop: 2 }}>
+                      {def.unlockCondition.description}
+                    </div>
                   )}
                 </div>
               );
@@ -215,55 +254,175 @@ export default function MainMenu() {
           padding: '24px 16px', paddingBottom: 'calc(var(--sab) + 24px)',
           maxWidth: 500,
         }}>
-          <div style={{
-            color: '#ffaa00', fontSize: 18, fontWeight: 'bold', marginBottom: 16,
-            textShadow: '0 0 10px #ffaa00', textAlign: 'center',
+          {/* CHARACTER UNLOCKS header */}
+          <div onClick={() => toggleSection('characters')} style={{
+            color: '#ffaa00', fontSize: 16, fontWeight: 'bold', marginBottom: 8,
+            textShadow: '0 0 10px #ffaa00', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between',
           }}>
-            CHARACTER UNLOCKS
+            <span>CHARACTER UNLOCKS</span>
+            <span>{openSections.characters ? '▼' : '▶'}</span>
           </div>
+          {openSections.characters && (
+            <>
+              {ALL_CHARACTER_IDS.filter((id) => CHARACTERS[id]?.unlockCondition).map((id) => {
+                const def = CHARACTERS[id]!;
+                const cond = def.unlockCondition!;
+                const isUnlocked = unlockedIds.includes(id);
+                const current = stats[cond.stat as keyof typeof stats] as number ?? 0;
+                const progress = Math.min(current / cond.threshold, 1);
 
-          {ALL_CHARACTER_IDS.filter((id) => CHARACTERS[id]?.unlockCondition).map((id) => {
-            const def = CHARACTERS[id]!;
-            const cond = def.unlockCondition!;
-            const isUnlocked = unlockedIds.includes(id);
-            const current = stats[cond.stat as keyof typeof stats] as number ?? 0;
-            const progress = Math.min(current / cond.threshold, 1);
-
-            return (
-              <div key={id} style={{
-                background: '#111122',
-                border: `1px solid ${isUnlocked ? '#00ff88' : '#333'}`,
-                borderRadius: 8, padding: 14, marginBottom: 10,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>
-                    {def.name}
-                  </div>
-                  {isUnlocked ? (
-                    <div style={{ color: '#00ff88', fontSize: 12, fontWeight: 'bold' }}>UNLOCKED</div>
-                  ) : (
-                    <div style={{ color: '#888', fontSize: 12 }}>
-                      {Math.floor(current)} / {cond.threshold}
+                return (
+                  <div key={id} style={{
+                    background: '#111122',
+                    border: `1px solid ${isUnlocked ? '#00ff88' : '#333'}`,
+                    borderRadius: 8, padding: 14, marginBottom: 10,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>
+                        {def.name}
+                      </div>
+                      {isUnlocked ? (
+                        <div style={{ color: '#00ff88', fontSize: 12, fontWeight: 'bold' }}>UNLOCKED</div>
+                      ) : (
+                        <div style={{ color: '#888', fontSize: 12 }}>
+                          {Math.floor(current)} / {cond.threshold}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 8 }}>
-                  {cond.description}
-                </div>
-                {/* Progress bar */}
-                <div style={{
-                  height: 8, background: 'rgba(255,255,255,0.08)',
-                  borderRadius: 4, overflow: 'hidden',
-                }}>
-                  <div style={{
-                    width: `${(isUnlocked ? 1 : progress) * 100}%`, height: '100%',
-                    background: isUnlocked ? '#00ff88' : '#ffaa00',
-                    borderRadius: 4, transition: 'width 0.3s',
-                  }} />
-                </div>
-              </div>
-            );
-          })}
+                    <div style={{ color: '#aaa', fontSize: 12, marginBottom: 8 }}>
+                      {cond.description}
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{
+                      height: 8, background: 'rgba(255,255,255,0.08)',
+                      borderRadius: 4, overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${(isUnlocked ? 1 : progress) * 100}%`, height: '100%',
+                        background: isUnlocked ? '#00ff88' : '#ffaa00',
+                        borderRadius: 4, transition: 'width 0.3s',
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* WEAPON UNLOCKS */}
+          <div onClick={() => toggleSection('weapons')} style={{
+            color: '#ff6644', fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 8,
+            textShadow: '0 0 10px #ff6644', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between',
+          }}>
+            <span>WEAPON UNLOCKS ({unlockedWeaponIds.length}/{BASE_WEAPON_IDS.length})</span>
+            <span>{openSections.weapons ? '▼' : '▶'}</span>
+          </div>
+          {openSections.weapons && (
+            <>
+              {BASE_WEAPON_IDS.filter((id) => WEAPONS[id]?.unlockCondition).map((id) => {
+                const def = WEAPONS[id]!;
+                const isUnlocked = unlockedWeaponIds.includes(id);
+                return (
+                  <div key={id} style={{
+                    background: '#111122',
+                    border: `1px solid ${isUnlocked ? '#00ff88' : '#333'}`,
+                    borderRadius: 8, padding: 12, marginBottom: 8,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ color: isUnlocked ? '#fff' : '#888', fontSize: 13, fontWeight: 'bold' }}>
+                        {def.name}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                        {def.unlockCondition!.description}
+                      </div>
+                    </div>
+                    <div style={{ color: isUnlocked ? '#00ff88' : '#666', fontSize: 12, fontWeight: 'bold' }}>
+                      {isUnlocked ? '✓' : '✗'}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* ITEM UNLOCKS */}
+          <div onClick={() => toggleSection('items')} style={{
+            color: '#aa88ff', fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 8,
+            textShadow: '0 0 10px #aa88ff', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between',
+          }}>
+            <span>ITEM UNLOCKS ({unlockedItemIds.length}/{ALL_ITEM_IDS.length})</span>
+            <span>{openSections.items ? '▼' : '▶'}</span>
+          </div>
+          {openSections.items && (
+            <>
+              {ALL_ITEM_IDS.filter((id) => ITEMS[id]?.unlockCondition).map((id) => {
+                const def = ITEMS[id]!;
+                const isUnlocked = unlockedItemIds.includes(id);
+                return (
+                  <div key={id} style={{
+                    background: '#111122',
+                    border: `1px solid ${isUnlocked ? '#00ff88' : '#333'}`,
+                    borderRadius: 8, padding: 12, marginBottom: 8,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ color: isUnlocked ? '#fff' : '#888', fontSize: 13, fontWeight: 'bold' }}>
+                        {def.name}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                        {def.unlockCondition!.description}
+                      </div>
+                    </div>
+                    <div style={{ color: isUnlocked ? '#00ff88' : '#666', fontSize: 12, fontWeight: 'bold' }}>
+                      {isUnlocked ? '✓' : '✗'}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* STAGE UNLOCKS */}
+          <div onClick={() => toggleSection('stages')} style={{
+            color: '#44aaff', fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 8,
+            textShadow: '0 0 10px #44aaff', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between',
+          }}>
+            <span>STAGE UNLOCKS ({unlockedStageIds.length}/{ALL_STAGE_IDS.length})</span>
+            <span>{openSections.stages ? '▼' : '▶'}</span>
+          </div>
+          {openSections.stages && (
+            <>
+              {ALL_STAGE_IDS.filter((id) => STAGES[id]?.unlockCondition).map((id) => {
+                const def = STAGES[id]!;
+                const isUnlocked = unlockedStageIds.includes(id);
+                return (
+                  <div key={id} style={{
+                    background: '#111122',
+                    border: `1px solid ${isUnlocked ? '#00ff88' : '#333'}`,
+                    borderRadius: 8, padding: 12, marginBottom: 8,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ color: isUnlocked ? '#fff' : '#888', fontSize: 13, fontWeight: 'bold' }}>
+                        {def.name}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                        {def.unlockCondition!.description}
+                      </div>
+                    </div>
+                    <div style={{ color: isUnlocked ? '#00ff88' : '#666', fontSize: 12, fontWeight: 'bold' }}>
+                      {isUnlocked ? '✓' : '✗'}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
 
           {/* Lifetime Stats */}
           <div style={{

@@ -59,6 +59,7 @@ interface MetaState {
   upgradeCharacter: (id: string) => boolean;
   checkUnlocks: () => string[];
   checkAllUnlocks: () => string[];
+  selectStage: (id: string) => void;
   resetAll: () => void;
 }
 
@@ -342,6 +343,11 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
     }
 
     return [...newlyUnlocked, ...newWeapons, ...newItems, ...newStages];
+  },
+
+  selectStage: (id) => {
+    set({ selectedStageId: id });
+    void SaveManager.save(stateToSaveData(get()));
   },
 
   resetAll: () => {
