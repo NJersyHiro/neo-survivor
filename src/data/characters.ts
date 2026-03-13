@@ -34,7 +34,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'neon_whip',
     baseStats: { maxHp: 85, moveSpeed: 20, luck: 10 },
     unlockCondition: { stat: 'bestTime', threshold: 300, description: 'Survive 5 minutes in a single run' },
-    creditCost: 1500,
+    creditCost: 0,
   },
   rhea: {
     id: 'rhea',
@@ -43,7 +43,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'cyber_shuriken',
     baseStats: { maxHp: 100, might: 10, area: 15, moveSpeed: -10 },
     unlockCondition: { stat: 'totalKills', threshold: 300, description: 'Kill 300 total enemies' },
-    creditCost: 1500,
+    creditCost: 0,
   },
   zion: {
     id: 'zion',
@@ -52,7 +52,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'pulse_rifle',
     baseStats: { maxHp: 90, might: 25, area: -20 },
     unlockCondition: { stat: 'bestLevel', threshold: 15, description: 'Reach level 15 in a single run' },
-    creditCost: 2000,
+    creditCost: 0,
   },
   nova: {
     id: 'nova',
@@ -61,7 +61,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'blade_drone',
     baseStats: { maxHp: 100, cooldown: -20, might: -10, recovery: 0.2 },
     unlockCondition: { stat: 'totalRuns', threshold: 10, description: 'Complete 10 runs' },
-    creditCost: 2000,
+    creditCost: 0,
   },
   tank: {
     id: 'tank',
@@ -70,7 +70,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'ion_orbit',
     baseStats: { maxHp: 130, armor: 2, recovery: 0.3, moveSpeed: -15, area: 10 },
     unlockCondition: { stat: 'totalDamageTaken', threshold: 1000, description: 'Take 1,000 total damage' },
-    creditCost: 2500,
+    creditCost: 0,
   },
   sage: {
     id: 'sage',
@@ -79,7 +79,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'volt_chain',
     baseStats: { maxHp: 75, might: 30 },
     unlockCondition: { stat: 'totalBossKills', threshold: 1, description: 'Kill a boss enemy' },
-    creditCost: 2500,
+    creditCost: 0,
   },
   flux: {
     id: 'flux',
@@ -88,7 +88,7 @@ export const CHARACTERS: Record<string, CharacterDefinition> = {
     startingWeaponId: 'gravity_bomb',
     baseStats: { maxHp: 95, magnet: 25, growth: 15, might: -10, luck: 10 },
     unlockCondition: { stat: 'totalXPGemsCollected', threshold: 500, description: 'Collect 500 total XP gems' },
-    creditCost: 3000,
+    creditCost: 0,
   },
 };
 

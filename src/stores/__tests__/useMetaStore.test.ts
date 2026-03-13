@@ -20,19 +20,18 @@ describe('useMetaStore', () => {
     expect(useMetaStore.getState().selectedCharacterId).toBe('vex');
   });
 
-  it('unlockCharacter deducts credits and adds to unlockedIds', () => {
+  it('unlockCharacter adds to unlockedIds (all characters are free)', () => {
     useMetaStore.setState({ credits: 2000 });
     const result = useMetaStore.getState().unlockCharacter('vex');
     expect(result).toBe(true);
     expect(useMetaStore.getState().unlockedIds).toContain('vex');
-    expect(useMetaStore.getState().credits).toBe(500);
+    expect(useMetaStore.getState().credits).toBe(2000);
   });
 
-  it('unlockCharacter fails with insufficient credits', () => {
+  it('unlockCharacter fails if character does not exist', () => {
     useMetaStore.setState({ credits: 100 });
-    const result = useMetaStore.getState().unlockCharacter('vex');
+    const result = useMetaStore.getState().unlockCharacter('nonexistent_character');
     expect(result).toBe(false);
-    expect(useMetaStore.getState().unlockedIds).not.toContain('vex');
   });
 
   it('unlockCharacter fails if already unlocked', () => {

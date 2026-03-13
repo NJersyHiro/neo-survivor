@@ -16,6 +16,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 3,
     evolutionItemId: 'energy_cell',
     evolvesInto: 'plasma_storm',
+    unlockCondition: null,
   },
   neon_whip: {
     id: 'neon_whip',
@@ -32,6 +33,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 4,
     evolutionItemId: 'cyber_boots',
     evolvesInto: 'storm_lash',
+    unlockCondition: { type: 'character_unlocked', characterId: 'vex', description: 'Unlock Vex' },
   },
   cyber_shuriken: {
     id: 'cyber_shuriken',
@@ -48,6 +50,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 2,
     evolutionItemId: 'ammo_belt',
     evolvesInto: 'shuriken_storm',
+    unlockCondition: { type: 'character_unlocked', characterId: 'rhea', description: 'Unlock Rhea' },
   },
 
   // --- New base weapons ---
@@ -66,6 +69,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 4,
     evolutionItemId: 'shield_matrix',
     evolvesInto: 'singularity_core',
+    unlockCondition: { type: 'character_unlocked', characterId: 'tank', description: 'Unlock Tank' },
   },
   pulse_rifle: {
     id: 'pulse_rifle',
@@ -82,6 +86,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 2,
     evolutionItemId: 'targeting_chip',
     evolvesInto: 'death_ray',
+    unlockCondition: { type: 'character_unlocked', characterId: 'zion', description: 'Unlock Zion' },
   },
   gravity_bomb: {
     id: 'gravity_bomb',
@@ -98,6 +103,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 8,
     evolutionItemId: 'magnet_implant',
     evolvesInto: 'black_hole',
+    unlockCondition: { type: 'character_unlocked', characterId: 'flux', description: 'Unlock Flux' },
   },
   volt_chain: {
     id: 'volt_chain',
@@ -114,6 +120,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 2,
     evolutionItemId: 'crit_module',
     evolvesInto: 'thunder_god',
+    unlockCondition: { type: 'character_unlocked', characterId: 'sage', description: 'Unlock Sage' },
   },
   blade_drone: {
     id: 'blade_drone',
@@ -130,6 +137,7 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     damagePerLevel: 3,
     evolutionItemId: 'overclock_chip',
     evolvesInto: 'drone_swarm',
+    unlockCondition: { type: 'character_unlocked', characterId: 'nova', description: 'Unlock Nova' },
   },
 
   // --- Phase 4A base weapons ---
@@ -138,43 +146,51 @@ export const WEAPONS: Record<string, WeaponDefinition> = {
     category: 'melee', baseDamage: 3, cooldown: 0.15, projectileSpeed: 0, area: 2.0,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 1,
     evolutionItemId: 'reflux_core', evolvesInto: 'inferno',
+    unlockCondition: { type: 'survive_time', seconds: 300, characterId: 'kai', description: 'Survive 5 minutes as Kai' },
   },
   cryo_spike: {
     id: 'cryo_spike', name: 'Cryo Spike', description: 'Ice spike explodes on hit, slowing enemies.',
     category: 'ranged', baseDamage: 12, cooldown: 1.6, projectileSpeed: 12, area: 1.5,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 3,
     evolutionItemId: 'holo_armor', evolvesInto: 'absolute_zero',
+    unlockCondition: { type: 'total_kills', count: 10000, description: 'Defeat 10,000 enemies total' },
   },
   homing_missile: {
     id: 'homing_missile', name: 'Homing Missile', description: 'Slow projectile that tracks the nearest enemy.',
     category: 'ranged', baseDamage: 20, cooldown: 2.0, projectileSpeed: 6, area: 1.0,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 5,
     evolutionItemId: 'quantum_lens', evolvesInto: 'swarm_rockets',
+    unlockCondition: { type: 'weapon_level', weaponId: 'volt_chain', level: 7, description: 'Get Volt Chain to Lv 7' },
   },
   tesla_coil: {
     id: 'tesla_coil', name: 'Tesla Coil', description: 'Static aura damages all nearby enemies.',
     category: 'melee', baseDamage: 8, cooldown: 0.8, projectileSpeed: 0, area: 2.5,
     pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 2,
+    unlockCondition: { type: 'weapon_level', weaponId: 'blade_drone', level: 7, description: 'Get Blade Drone to Lv 7' },
   },
   ricochet_disc: {
     id: 'ricochet_disc', name: 'Ricochet Disc', description: 'Disc bounces between enemies.',
     category: 'ranged', baseDamage: 10, cooldown: 1.4, projectileSpeed: 10, area: 0.5,
     pierce: 3, amount: 1, maxLevel: 8, damagePerLevel: 3,
+    unlockCondition: { type: 'survive_time', seconds: 900, characterId: 'tank', description: 'Survive 15 minutes as Tank' },
   },
   photon_beam: {
     id: 'photon_beam', name: 'Photon Beam', description: 'Straight beam pierces all enemies.',
     category: 'ranged', baseDamage: 15, cooldown: 2.5, projectileSpeed: 20, area: 0.3,
     pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 4,
+    unlockCondition: { type: 'weapon_level', weaponId: 'pulse_rifle', level: 7, description: 'Get Pulse Rifle to Lv 7' },
   },
   scatter_mine: {
     id: 'scatter_mine', name: 'Scatter Mine', description: 'Drops mines behind player as they move.',
     category: 'ranged', baseDamage: 18, cooldown: 1.2, projectileSpeed: 0, area: 1.5,
     pierce: 1, amount: 1, maxLevel: 8, damagePerLevel: 4,
+    unlockCondition: { type: 'survive_time', seconds: 900, characterId: 'rhea', description: 'Survive 15 minutes as Rhea' },
   },
   phase_blade: {
     id: 'phase_blade', name: 'Phase Blade', description: 'Sweeping arc slash passes through walls.',
     category: 'melee', baseDamage: 14, cooldown: 1.0, projectileSpeed: 0, area: 2.0,
     pierce: 99, amount: 1, maxLevel: 8, damagePerLevel: 3,
+    unlockCondition: { type: 'survive_time', seconds: 900, characterId: 'vex', description: 'Survive 15 minutes as Vex' },
   },
 
   // --- Evolved weapons ---
