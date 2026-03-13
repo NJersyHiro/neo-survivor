@@ -15,6 +15,13 @@ export default function ShopScreen() {
       width: '100%', maxWidth: 600, overflow: 'auto',
       WebkitOverflowScrolling: 'touch' as const,
     }}>
+      {/* Credits */}
+      <div style={{
+        color: '#ffff00', fontSize: 18, fontWeight: 'bold',
+        textShadow: '0 0 10px #ffff00', textAlign: 'center', marginBottom: 16,
+      }}>
+        {credits} CR
+      </div>
       {/* Stat Upgrades */}
       <div style={{
         display: 'grid',

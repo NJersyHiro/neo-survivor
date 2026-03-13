@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { useMetaStore } from '../stores/useMetaStore';
 import { CHARACTERS, ALL_CHARACTER_IDS } from '../data/characters';
@@ -22,7 +22,6 @@ const scrollStyle: React.CSSProperties = {
 
 export default function MainMenu() {
   const phase = useGameStore((s) => s.phase);
-  const credits = useMetaStore((s) => s.credits);
   const stats = useMetaStore((s) => s.stats);
   const unlockedIds = useMetaStore((s) => s.unlockedIds);
   const selectedCharacterId = useMetaStore((s) => s.selectedCharacterId);
@@ -36,6 +35,29 @@ export default function MainMenu() {
   });
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  // Swipe to change tabs
+  const TABS = ['play', 'shop', 'achievements'] as const;
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const onSwipeStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (t) swipeStart.current = { x: t.clientX, y: t.clientY };
+  }, []);
+  const onSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeStart.current) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - swipeStart.current.x;
+    const dy = t.clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+    setTab((prev) => {
+      const idx = TABS.indexOf(prev);
+      if (dx < 0 && idx < TABS.length - 1) return TABS[idx + 1]!;
+      if (dx > 0 && idx > 0) return TABS[idx - 1]!;
+      return prev;
+    });
+  }, []);
+
   useEffect(() => {
     void useMetaStore.getState().load();
   }, []);
@@ -43,20 +65,15 @@ export default function MainMenu() {
   if (phase !== 'menu') return null;
 
   return (
-    <div style={{
+    <div
+      onTouchStart={onSwipeStart}
+      onTouchEnd={onSwipeEnd}
+      style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
       zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center',
       background: '#000', fontFamily: "'Courier New', monospace",
       overflow: 'hidden',
     }}>
-      {/* Credits */}
-      <div style={{
-        position: 'absolute', top: 'calc(var(--sat) + 16px)', right: 24, color: '#ffff00',
-        fontSize: 18, fontWeight: 'bold', textShadow: '0 0 10px #ffff00', zIndex: 1,
-      }}>
-        {credits} CR
-      </div>
-
       {/* Tabs */}
       <div style={{
         display: 'flex', gap: 0, marginTop: 'calc(var(--sat) + 16px)',
@@ -203,16 +220,21 @@ export default function MainMenu() {
             <button
               onClick={() => {
                 SoundManager.buttonClick();
-                useMetaStore.setState({ unlockedIds: [...ALL_CHARACTER_IDS] });
+                useMetaStore.setState({
+                  unlockedIds: [...ALL_CHARACTER_IDS],
+                  unlockedWeaponIds: [...BASE_WEAPON_IDS],
+                  unlockedItemIds: [...ALL_ITEM_IDS],
+                  unlockedStageIds: [...ALL_STAGE_IDS],
+                });
                 const s = useMetaStore.getState();
                 void SaveManager.save({
                   version: 3, credits: s.credits, upgrades: s.upgrades,
                   stats: { ...s.stats }, unlockedIds: [...ALL_CHARACTER_IDS],
                   selectedCharacterId: s.selectedCharacterId,
                   characterLevels: { ...s.characterLevels },
-                  unlockedWeaponIds: [...(s.unlockedWeaponIds ?? ['plasma_bolt'])],
-                  unlockedItemIds: [...(s.unlockedItemIds ?? ['energy_cell', 'shield_matrix', 'magnet_implant'])],
-                  unlockedStageIds: [...(s.unlockedStageIds ?? ['neon_district'])],
+                  unlockedWeaponIds: [...BASE_WEAPON_IDS],
+                  unlockedItemIds: [...ALL_ITEM_IDS],
+                  unlockedStageIds: [...ALL_STAGE_IDS],
                   hyperModeStageIds: [...(s.hyperModeStageIds ?? [])],
                   selectedStageId: s.selectedStageId ?? 'neon_district',
                   perCharacterStats: { ...(s.perCharacterStats ?? {}) },
@@ -439,7 +461,7 @@ export default function MainMenu() {
               ['Total Runs', stats.totalRuns],
               ['Total Kills', stats.totalKills],
               ['Total Time', formatTime(stats.totalTimePlayed)],
-              ['Total Damage Taken', stats.totalDamageTaken],
+              ['Total Damage Taken', Math.round(stats.totalDamageTaken)],
               ['Total Boss Kills', stats.totalBossKills],
               ['Total XP Gems', stats.totalXPGemsCollected],
               ['Best Survival Time', formatTime(stats.bestTime)],
