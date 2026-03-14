@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { useMetaStore } from '../stores/useMetaStore';
+import { STAGES } from '../data/stages';
 
 function NeonGrid() {
   return (
@@ -38,10 +40,14 @@ function StageBoundary() {
 }
 
 function Ground() {
+  const stageId = useMetaStore((s) => s.selectedStageId);
+  const stage = STAGES[stageId];
+  const groundColor = stage?.groundColor ?? '#0a0a1a';
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[50, 50]} />
-      <meshStandardMaterial color="#0a0a1a" />
+      <meshStandardMaterial color={groundColor} />
     </mesh>
   );
 }
