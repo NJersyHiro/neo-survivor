@@ -50,6 +50,10 @@ export interface WeaponInstance {
   level: number;
 }
 
+export type EnemyBehavior = 'chase' | 'ranged' | 'teleport_chase';
+export type EnemyOnDeath = 'none' | 'explode' | 'split';
+export type EnemyAura = 'none' | 'heal_allies' | 'buff_damage';
+
 export interface EnemyDefinition {
   id: string;
   name: string;
@@ -62,6 +66,22 @@ export interface EnemyDefinition {
   scale: number;
   isBoss?: boolean;
   bossScale?: number;
+  isReaper?: boolean;
+  behavior?: EnemyBehavior;
+  projectileDamage?: number;
+  projectileSpeed?: number;
+  projectileInterval?: number;
+  attackRange?: number;
+  onDeath?: EnemyOnDeath;
+  explosionDamage?: number;
+  explosionRadius?: number;
+  splitInto?: string;
+  aura?: EnemyAura;
+  auraValue?: number;
+  auraRadius?: number;
+  shieldHp?: number;
+  shieldRegenDelay?: number;
+  teleportInterval?: number;
 }
 
 export interface EnemyInstance {
@@ -70,6 +90,19 @@ export interface EnemyInstance {
   position: Vec3;
   hp: number;
   maxHp: number;
+  shieldHp?: number;
+  shieldBrokeAt?: number;
+  lastTeleport?: number;
+  lastProjectile?: number;
+}
+
+export interface EnemyProjectileInstance {
+  id: string;
+  position: Vec3;
+  velocity: Vec3;
+  damage: number;
+  speed: number;
+  age: number;
 }
 
 export interface ProjectileInstance {
@@ -127,4 +160,20 @@ export interface LevelUpOption {
   weaponId?: string;
   itemId?: string;
   level: number;
+}
+
+export type SpawnPattern = 'ring' | 'cluster' | 'line';
+
+export interface WaveEntry {
+  enemies: { id: string; weight: number }[];
+  spawnInterval: number;
+  maxSpawnCount: number;
+  hpMultiplier: number;
+  spawnPattern: SpawnPattern;
+  bossId?: string;
+}
+
+export interface StageWaveSchedule {
+  stageId: string;
+  waves: WaveEntry[];
 }
