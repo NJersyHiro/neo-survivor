@@ -316,7 +316,7 @@ export default function Enemies() {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_INSTANCES]} frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshBasicMaterial vertexColors />
+      <meshStandardMaterial vertexColors emissive="#ffffff" emissiveIntensity={0.3} toneMapped={false} />
     </instancedMesh>
   );
 }

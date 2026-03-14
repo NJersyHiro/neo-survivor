@@ -29,7 +29,7 @@ export function getSpawnPositions(pattern: SpawnPattern, playerPos: Vec3, count:
 
   if (pattern === 'ring') {
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+      const angle = Math.random() * Math.PI * 2;
       const dist = MIN_SPAWN_DIST + Math.random() * (MAX_SPAWN_DIST - MIN_SPAWN_DIST);
       positions.push({
         x: clamp(playerPos.x + Math.cos(angle) * dist, -STAGE_HALF, STAGE_HALF),
