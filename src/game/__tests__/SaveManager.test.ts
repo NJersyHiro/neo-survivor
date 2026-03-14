@@ -124,6 +124,7 @@ describe('SaveManager', () => {
       selectedStageId: 'neon_district',
       perCharacterStats: {},
       perWeaponStats: {},
+      perStageStats: {},
     };
     await SaveManager.save(saveData);
     const loaded = await SaveManager.load();

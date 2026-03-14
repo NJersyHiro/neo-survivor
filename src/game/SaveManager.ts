@@ -29,6 +29,7 @@ export interface SaveData {
   selectedStageId: string;
   perCharacterStats: Record<string, { bestTime: number }>;
   perWeaponStats: Record<string, { maxLevel: number }>;
+  perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
 }
 
 function migrateV1ToV2(data: Record<string, unknown>): SaveData {
@@ -65,6 +66,7 @@ function migrateV1ToV2(data: Record<string, unknown>): SaveData {
     selectedStageId: 'neon_district',
     perCharacterStats: {},
     perWeaponStats: {},
+    perStageStats: {},
   };
 }
 
@@ -105,6 +107,7 @@ function migrateV2ToV3(data: SaveData): SaveData {
     selectedStageId: data.selectedStageId ?? 'neon_district',
     perCharacterStats: data.perCharacterStats ?? {},
     perWeaponStats: data.perWeaponStats ?? {},
+    perStageStats: (data as SaveData & { perStageStats?: Record<string, { bestLevel: number; bestTime: number }> }).perStageStats ?? {},
   };
 }
 

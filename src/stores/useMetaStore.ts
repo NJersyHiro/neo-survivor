@@ -37,6 +37,8 @@ interface MetaState {
   selectedStageId: string;
   perCharacterStats: Record<string, { bestTime: number }>;
   perWeaponStats: Record<string, { maxLevel: number }>;
+  perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
+  hyperModeActive: boolean;
 
   load: () => Promise<void>;
   addCredits: (amount: number) => void;
@@ -60,6 +62,8 @@ interface MetaState {
   checkUnlocks: () => string[];
   checkAllUnlocks: () => string[];
   selectStage: (id: string) => void;
+  unlockHyperMode: (stageId: string) => void;
+  setHyperModeActive: (active: boolean) => void;
   resetAll: () => void;
 }
 
@@ -83,6 +87,8 @@ function createDefaultState() {
     selectedStageId: 'neon_district',
     perCharacterStats: {} as Record<string, { bestTime: number }>,
     perWeaponStats: {} as Record<string, { maxLevel: number }>,
+    perStageStats: {} as Record<string, { bestLevel: number; bestTime: number }>,
+    hyperModeActive: false,
   };
 }
 
@@ -102,6 +108,7 @@ function stateToSaveData(state: MetaState): SaveData {
     selectedStageId: state.selectedStageId,
     perCharacterStats: { ...state.perCharacterStats },
     perWeaponStats: { ...state.perWeaponStats },
+    perStageStats: { ...state.perStageStats },
   };
 }
 
@@ -117,6 +124,10 @@ function checkCondition(cond: UnlockCondition, state: MetaState): boolean {
       return state.stats.bestTime >= cond.seconds;
     }
     case 'reach_level': {
+      if (cond.stageId) {
+        const stageStats = state.perStageStats[cond.stageId];
+        return (stageStats?.bestLevel ?? 0) >= cond.level;
+      }
       return state.stats.bestLevel >= cond.level;
     }
     case 'weapon_level': {
@@ -162,6 +173,7 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         selectedStageId: data.selectedStageId ?? 'neon_district',
         perCharacterStats: data.perCharacterStats ?? {},
         perWeaponStats: data.perWeaponStats ?? {},
+        perStageStats: data.perStageStats ?? {},
       });
     }
   },
@@ -199,6 +211,16 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         weaponStats[wid] = { maxLevel: Math.max(cur.maxLevel, lvl) };
       }
 
+      const stageId = state.selectedStageId;
+      const prev = state.perStageStats[stageId] ?? { bestLevel: 0, bestTime: 0 };
+      const perStageStats = {
+        ...state.perStageStats,
+        [stageId]: {
+          bestLevel: Math.max(prev.bestLevel, extras.playerLevel),
+          bestTime: Math.max(prev.bestTime, time),
+        },
+      };
+
       return {
         credits: state.credits + creditsEarned,
         stats: {
@@ -217,6 +239,7 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         },
         perCharacterStats: charStats,
         perWeaponStats: weaponStats,
+        perStageStats,
       };
     });
     void SaveManager.save(stateToSaveData(get()));
@@ -349,6 +372,17 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
     set({ selectedStageId: id });
     void SaveManager.save(stateToSaveData(get()));
   },
+
+  unlockHyperMode: (stageId) => {
+    set((state) => {
+      if (state.hyperModeStageIds.includes(stageId)) return {};
+      const newIds = [...state.hyperModeStageIds, stageId];
+      return { hyperModeStageIds: newIds };
+    });
+    void SaveManager.save(stateToSaveData(get()));
+  },
+
+  setHyperModeActive: (active) => set({ hyperModeActive: active }),
 
   resetAll: () => {
     set(createDefaultState());
