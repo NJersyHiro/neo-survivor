@@ -153,7 +153,15 @@ export interface ChestInstance {
   type: ChestType;
 }
 
-export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover';
+export type FloorItemType = 'heal' | 'magnet' | 'xp_bomb' | 'nuke' | 'gold_bag';
+
+export interface FloorItemInstance {
+  id: string;
+  type: FloorItemType;
+  position: Vec3;
+}
+
+export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover' | 'augment';
 
 export interface LevelUpOption {
   type: 'new_weapon' | 'upgrade_weapon' | 'new_item' | 'upgrade_item';

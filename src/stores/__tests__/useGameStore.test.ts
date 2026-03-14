@@ -2,6 +2,15 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGameStore, xpForLevel } from '../useGameStore';
 import { useMetaStore } from '../useMetaStore';
 
+/** Helper: startRun + select augment to get to 'playing' phase */
+function startRunAndPlay() {
+  useGameStore.getState().startRun();
+  const options = useGameStore.getState().augmentOptions;
+  if (options.length > 0) {
+    useGameStore.getState().selectAugment(options[0]!);
+  }
+}
+
 describe('useGameStore', () => {
   beforeEach(() => {
     useGameStore.getState().reset();
@@ -32,17 +41,23 @@ describe('useGameStore', () => {
     expect(state.killCount).toBe(0);
   });
 
-  it('startRun sets phase playing with starting weapon', () => {
+  it('startRun sets phase augment then playing after selection', () => {
     useGameStore.getState().startRun();
+    expect(useGameStore.getState().phase).toBe('augment');
+    expect(useGameStore.getState().augmentOptions).toHaveLength(3);
+    const firstOption = useGameStore.getState().augmentOptions[0]!;
+    useGameStore.getState().selectAugment(firstOption);
     const state = useGameStore.getState();
     expect(state.phase).toBe('playing');
     expect(state.weapons).toHaveLength(1);
     expect(state.weapons[0]?.definitionId).toBe('plasma_bolt');
     expect(state.weapons[0]?.level).toBe(1);
+    expect(state.activeAugments).toHaveLength(1);
+    expect(state.activeAugments[0]).toBe(firstOption);
   });
 
   it('addXP triggers level-up when threshold reached', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);
     const state = useGameStore.getState();
@@ -53,7 +68,7 @@ describe('useGameStore', () => {
   });
 
   it('takeDamage kills player at 0 HP', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const startHp = useGameStore.getState().player.hp;
     useGameStore.getState().takeDamage(startHp);
     const state = useGameStore.getState();
@@ -62,7 +77,7 @@ describe('useGameStore', () => {
   });
 
   it('takeDamage reduces HP considering armor', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const startHp = useGameStore.getState().player.hp;
     useGameStore.getState().takeDamage(10);
     const state = useGameStore.getState();
@@ -70,7 +85,7 @@ describe('useGameStore', () => {
   });
 
   it('spawnEnemy and removeEnemy work', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const enemy = {
       id: '1',
       definitionId: 'drone',
@@ -87,13 +102,13 @@ describe('useGameStore', () => {
   });
 
   it('tick advances elapsed time', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().tick(1.5);
     expect(useGameStore.getState().elapsedTime).toBeCloseTo(1.5);
   });
 
   it('tick triggers gameover at 1800 seconds', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().tick(1800);
     const state = useGameStore.getState();
     expect(state.phase).toBe('gameover');
@@ -101,14 +116,14 @@ describe('useGameStore', () => {
   });
 
   it('movePlayer clamps to bounds', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     // Move far right: dx=1, dz=0, delta=100 → x = 0 + 1*5*100 = 500, clamped to 24
     useGameStore.getState().movePlayer(1, 0, 100);
     expect(useGameStore.getState().player.position.x).toBe(24);
   });
 
   it('selectLevelUpOption adds new weapon', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().selectLevelUpOption({
       type: 'new_weapon',
       weaponId: 'neon_whip',
@@ -120,7 +135,7 @@ describe('useGameStore', () => {
   });
 
   it('selectLevelUpOption upgrades existing weapon', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().selectLevelUpOption({
       type: 'upgrade_weapon',
       weaponId: 'plasma_bolt',
@@ -131,7 +146,7 @@ describe('useGameStore', () => {
   });
 
   it('damageEnemy reduces enemy HP', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().spawnEnemy({
       id: '1',
       definitionId: 'drone',
@@ -144,7 +159,7 @@ describe('useGameStore', () => {
   });
 
   it('startRun initializes items and tool counts', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     expect(state.items).toEqual([]);
     expect(state.rerollCount).toBe(0);
@@ -154,7 +169,7 @@ describe('useGameStore', () => {
   });
 
   it('selectLevelUpOption adds new item', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().selectLevelUpOption({
       type: 'new_item', itemId: 'energy_cell', level: 1,
     });
@@ -165,7 +180,7 @@ describe('useGameStore', () => {
   });
 
   it('selectLevelUpOption upgrades existing item', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().selectLevelUpOption({
       type: 'new_item', itemId: 'energy_cell', level: 1,
     });
@@ -177,7 +192,7 @@ describe('useGameStore', () => {
 
   it('skip resumes playing and decrements count', () => {
     useMetaStore.setState({ upgrades: { extra_skip: 3 } });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);
     expect(useGameStore.getState().phase).toBe('levelup');
@@ -188,7 +203,7 @@ describe('useGameStore', () => {
 
   it('reroll generates new options and decrements count', () => {
     useMetaStore.setState({ upgrades: { extra_reroll: 3 } });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);
     expect(useGameStore.getState().phase).toBe('levelup');
@@ -199,14 +214,14 @@ describe('useGameStore', () => {
 
   it('banish adds ID to banished list', () => {
     useMetaStore.setState({ upgrades: { extra_banish: 3 } });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().banish('neon_whip');
     expect(useGameStore.getState().banishedIds).toContain('neon_whip');
     expect(useGameStore.getState().banishCount).toBe(2);
   });
 
   it('reroll/skip/banish start at 0 without shop upgrades', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     expect(state.rerollCount).toBe(0);
     expect(state.skipCount).toBe(0);
@@ -214,14 +229,14 @@ describe('useGameStore', () => {
   });
 
   it('startRun initializes creditsEarned and reviveCount', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     expect(state.creditsEarned).toBe(0);
     expect(state.reviveCount).toBe(0);
   });
 
   it('damageEnemy accumulates credits on kill', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().spawnEnemy({
       id: '1', definitionId: 'drone',
       position: { x: 0, y: 0, z: 0 }, hp: 10, maxHp: 10,
@@ -231,7 +246,7 @@ describe('useGameStore', () => {
   });
 
   it('takeDamage triggers revival instead of gameover when reviveCount > 0', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.setState({ reviveCount: 1 });
     useGameStore.getState().takeDamage(200);
     const state = useGameStore.getState();
@@ -241,13 +256,13 @@ describe('useGameStore', () => {
   });
 
   it('takeDamage triggers gameover when no revives left', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().takeDamage(200);
     expect(useGameStore.getState().phase).toBe('gameover');
   });
 
   it('damageEnemy removes dead enemies and increments killCount', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().spawnEnemy({
       id: '1',
       definitionId: 'drone',
@@ -281,7 +296,7 @@ describe('useGameStore', () => {
       unlockedIds: ['kai', 'vex'],
       characterLevels: {},
     });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     expect(state.weapons[0]?.definitionId).toBe('neon_whip');
   });
@@ -292,7 +307,7 @@ describe('useGameStore', () => {
       unlockedIds: ['kai', 'tank'],
       characterLevels: { tank: 2 },
     });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     // Tank: baseMaxHp = 130 + 2*2 = 134
     // No shop upgrades, so effectiveMaxHp = 134
@@ -301,7 +316,7 @@ describe('useGameStore', () => {
   });
 
   it('startRun initializes per-run counters to zero', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     const state = useGameStore.getState();
     expect(state.damageTaken).toBe(0);
     expect(state.bossKills).toBe(0);
@@ -309,13 +324,13 @@ describe('useGameStore', () => {
   });
 
   it('takeDamage increments damageTaken counter', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().takeDamage(25);
     expect(useGameStore.getState().damageTaken).toBe(25);
   });
 
   it('damageEnemy increments bossKills on boss death', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     useGameStore.getState().spawnEnemy({
       id: 'b1', definitionId: 'sentinel',
       position: { x: 0, y: 0, z: 0 }, hp: 10, maxHp: 10,
@@ -325,7 +340,7 @@ describe('useGameStore', () => {
   });
 
   it('damageEnemy applies crit damage when Math.random returns 0', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     // crit_module gives critChance: 8 per level
     useGameStore.setState({
       items: [{ definitionId: 'crit_module', level: 1 }],
@@ -342,7 +357,7 @@ describe('useGameStore', () => {
   });
 
   it('damageEnemy heals player via lifesteal', () => {
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     // Set player to 50 HP and give them a lifesteal item (reflux_core: lifesteal 5 per level)
     useGameStore.setState({
       player: { ...useGameStore.getState().player, hp: 50 },
@@ -369,7 +384,7 @@ describe('useGameStore', () => {
       unlockedWeaponIds: ['plasma_bolt'],
       unlockedItemIds: ['energy_cell'],
     });
-    useGameStore.getState().startRun();
+    startRunAndPlay();
     // Trigger a level-up
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);

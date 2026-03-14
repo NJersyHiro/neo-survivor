@@ -7,10 +7,12 @@ import EnemyProjectiles from './components/EnemyProjectiles';
 import Projectiles from './components/Projectiles';
 import XPGemRenderer from './components/XPGems';
 import Chests from './components/Chests';
+import FloorItemRenderer from './components/FloorItems';
 import GameLoop from './components/GameLoop';
 import PostProcessing from './components/PostProcessing';
 import HUD from './ui/HUD';
 import LevelUpScreen from './ui/LevelUpScreen';
+import AugmentScreen from './ui/AugmentScreen';
 import PauseScreen from './ui/PauseScreen';
 import ResultsScreen from './ui/ResultsScreen';
 import MainMenu from './ui/MainMenu';
@@ -28,6 +30,7 @@ function GameScene() {
       <Projectiles />
       <XPGemRenderer />
       <Chests />
+      <FloorItemRenderer />
       <GameLoop />
       <PostProcessing />
     </>
@@ -45,6 +48,7 @@ export default function App() {
       </Canvas>
       <HUD />
       <LevelUpScreen />
+      <AugmentScreen />
       <PauseScreen />
       <ResultsScreen />
       <MainMenu />

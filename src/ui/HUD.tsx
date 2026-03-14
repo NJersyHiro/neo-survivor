@@ -54,7 +54,7 @@ export default function HUD() {
     prevEvolvedIdsRef.current = currentEvolvedIds;
   }, [weapons]);
 
-  if (phase !== 'playing' && phase !== 'levelup' && phase !== 'paused') return null;
+  if (phase !== 'playing' && phase !== 'levelup' && phase !== 'paused' && phase !== 'augment') return null;
 
   const hpPercent = Math.min(100, Math.max(0, hp / maxHp) * 100);
   const xpPercent = Math.max(0, xp / xpToNextLevel) * 100;

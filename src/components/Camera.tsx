@@ -12,7 +12,7 @@ export default function Camera() {
 
   useFrame((_state, delta) => {
     const { phase, player } = useGameStore.getState();
-    if (phase !== 'playing' && phase !== 'levelup') return;
+    if (phase !== 'playing' && phase !== 'levelup' && phase !== 'augment' && phase !== 'paused') return;
 
     const { x, y, z } = player.position;
     _target.set(x + OFFSET.x, y + OFFSET.y, z + OFFSET.z);

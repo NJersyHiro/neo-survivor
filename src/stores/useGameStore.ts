@@ -10,6 +10,7 @@ import type {
   XPGemInstance,
   LevelUpOption,
   ChestInstance,
+  FloorItemInstance,
 } from '../types';
 import { WEAPONS, STARTING_WEAPON_ID, BASE_WEAPON_IDS } from '../data/weapons';
 import { ITEMS, ALL_ITEM_IDS } from '../data/items';
@@ -20,6 +21,8 @@ import { ENEMIES } from '../data/enemies';
 import { CHARACTERS } from '../data/characters';
 import { SoundManager } from '../game/SoundManager';
 import { generateId } from '../utils/math';
+import { rollFloorItemDrop, BOSS_DROP_COUNT } from '../data/floorItems';
+import { ALL_AUGMENT_IDS, AUGMENT_OFFER_TIMES, MAX_AUGMENTS_PER_RUN } from '../data/augments';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -66,6 +69,10 @@ interface GameState {
   weaponMaxLevels: Record<string, number>;
   razorWireTimer: number;
   enemyProjectiles: EnemyProjectileInstance[];
+  floorItems: FloorItemInstance[];
+  activeAugments: string[];
+  augmentOptions: string[];
+  augmentOffersGiven: number;
   hyperModeEnabled: boolean;
 
   reset: () => void;
@@ -90,6 +97,9 @@ interface GameState {
   addChest: (chest: ChestInstance) => void;
   removeChest: (id: string) => void;
   collectChest: (id: string) => void;
+  addFloorItem: (item: FloorItemInstance) => void;
+  removeFloorItem: (id: string) => void;
+  selectAugment: (id: string) => void;
   movePlayer: (dx: number, dz: number, delta: number) => void;
   healPlayer: (amount: number) => void;
   tickRazorWire: (delta: number) => void;
@@ -199,6 +209,10 @@ export const useGameStore = create<GameState>()((set) => ({
   weaponMaxLevels: {} as Record<string, number>,
   razorWireTimer: 0,
   enemyProjectiles: [],
+  floorItems: [],
+  activeAugments: [],
+  augmentOptions: [],
+  augmentOffersGiven: 0,
   hyperModeEnabled: false,
 
   reset: () =>
@@ -229,6 +243,10 @@ export const useGameStore = create<GameState>()((set) => ({
       weaponMaxLevels: {} as Record<string, number>,
       razorWireTimer: 0,
       enemyProjectiles: [],
+      floorItems: [],
+      activeAugments: [],
+      augmentOptions: [],
+      augmentOffersGiven: 0,
       hyperModeEnabled: false,
     }),
 
@@ -247,8 +265,12 @@ export const useGameStore = create<GameState>()((set) => ({
     // Only apply shop upgrade % bonus to base HP (character maxHp is already the base value)
     const shopStats = computePlayerStats([], meta.upgrades);
     const effectiveMaxHp = Math.round(baseMaxHp * (1 + shopStats.maxHp / 100));
+    // Generate first augment selection
+    const shuffledAugments = shuffleArray([...ALL_AUGMENT_IDS]);
+    const firstAugmentOptions = shuffledAugments.slice(0, 3);
+
     set({
-      phase: 'playing',
+      phase: 'augment',
       elapsedTime: 0,
       killCount: 0,
       player: {
@@ -278,6 +300,10 @@ export const useGameStore = create<GameState>()((set) => ({
       weaponMaxLevels: {} as Record<string, number>,
       razorWireTimer: 0,
       enemyProjectiles: [],
+      floorItems: [],
+      activeAugments: [],
+      augmentOptions: firstAugmentOptions,
+      augmentOffersGiven: 1,
       hyperModeEnabled,
     });
   },
@@ -290,6 +316,29 @@ export const useGameStore = create<GameState>()((set) => ({
       if (newTime >= 1800) {
         return { elapsedTime: 1800, phase: 'gameover' };
       }
+
+      // Check for augment offers at minute 11 (660s) and 21 (1260s)
+      if (
+        state.augmentOffersGiven < MAX_AUGMENTS_PER_RUN &&
+        state.augmentOptions.length === 0
+      ) {
+        const nextOfferTime = AUGMENT_OFFER_TIMES[state.augmentOffersGiven];
+        if (nextOfferTime !== undefined) {
+          const offerSeconds = nextOfferTime * 60;
+          if (state.elapsedTime < offerSeconds && newTime >= offerSeconds) {
+            const usedIds = new Set(state.activeAugments);
+            const available = ALL_AUGMENT_IDS.filter((id) => !usedIds.has(id));
+            const options = shuffleArray(available).slice(0, 3);
+            return {
+              elapsedTime: newTime,
+              phase: 'augment',
+              augmentOptions: options,
+              augmentOffersGiven: state.augmentOffersGiven + 1,
+            };
+          }
+        }
+      }
+
       return { elapsedTime: newTime };
     }),
 
@@ -502,6 +551,28 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
+      // Spawn floor item drops from dead enemies
+      const newFloorItems = [...state.floorItems];
+      for (const d of dead) {
+        const def = ENEMIES[d.definitionId];
+        if (def?.isReaper) continue;
+        const dropCount = def?.isBoss ? BOSS_DROP_COUNT : 1;
+        for (let i = 0; i < dropCount; i++) {
+          const drop = rollFloorItemDrop(stats.luck, !!def?.isBoss);
+          if (drop) {
+            newFloorItems.push({
+              id: generateId(),
+              type: drop,
+              position: {
+                x: d.position.x + (Math.random() - 0.5) * 2,
+                y: 0,
+                z: d.position.z + (Math.random() - 0.5) * 2,
+              },
+            });
+          }
+        }
+      }
+
       const result: Partial<GameState> = {
         enemies: [...alive, ...extraEnemies],
         killCount: state.killCount + dead.length,
@@ -509,6 +580,7 @@ export const useGameStore = create<GameState>()((set) => ({
         bossKills: state.bossKills + newBossKills,
         player,
         hpRecovered: state.hpRecovered + Math.max(0, actualHeal),
+        floorItems: newFloorItems,
       };
 
       if (explosionPhase) {
@@ -539,6 +611,19 @@ export const useGameStore = create<GameState>()((set) => ({
 
   removeChest: (id) =>
     set((state) => ({ chests: state.chests.filter((c) => c.id !== id) })),
+
+  selectAugment: (id) =>
+    set((state) => ({
+      activeAugments: [...state.activeAugments, id],
+      augmentOptions: [],
+      phase: 'playing',
+    })),
+
+  addFloorItem: (item) =>
+    set((state) => ({ floorItems: [...state.floorItems, item] })),
+
+  removeFloorItem: (id) =>
+    set((state) => ({ floorItems: state.floorItems.filter((f) => f.id !== id) })),
 
   collectChest: (id) =>
     set((state) => {
