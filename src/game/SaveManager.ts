@@ -31,6 +31,7 @@ export interface SaveData {
   perWeaponStats: Record<string, { maxLevel: number }>;
   perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
   encounteredEnemyIds: string[];
+  selectedGameMode?: 'survival' | 'endless';
 }
 
 function migrateV1ToV2(data: Record<string, unknown>): SaveData {

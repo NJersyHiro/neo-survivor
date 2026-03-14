@@ -164,7 +164,7 @@ export interface FloorItemInstance {
 export type GamePhase = 'menu' | 'playing' | 'levelup' | 'paused' | 'gameover' | 'augment';
 
 export interface LevelUpOption {
-  type: 'new_weapon' | 'upgrade_weapon' | 'new_item' | 'upgrade_item';
+  type: 'new_weapon' | 'upgrade_weapon' | 'new_item' | 'upgrade_item' | 'limit_break';
   weaponId?: string;
   itemId?: string;
   level: number;

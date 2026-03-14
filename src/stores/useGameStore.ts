@@ -75,6 +75,7 @@ interface GameState {
   augmentOptions: string[];
   augmentOffersGiven: number;
   hyperModeEnabled: boolean;
+  gameMode: 'survival' | 'endless';
 
   reset: () => void;
   startRun: () => void;
@@ -118,7 +119,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 function generateLevelUpOptions(
   weapons: WeaponInstance[],
   items: ItemInstance[],
-  banishedIds: string[]
+  banishedIds: string[],
+  weaponMaxLevels: Record<string, number>
 ): LevelUpOption[] {
   const options: LevelUpOption[] = [];
   const banishedSet = new Set(banishedIds);
@@ -180,6 +182,26 @@ function generateLevelUpOptions(
     }
   }
 
+  // If no regular options available (all slots full + all maxed), offer Limit Break
+  if (options.length === 0 && weapons.length > 0) {
+    const shuffledWeapons = shuffleArray([...weapons]);
+    const limitBreakOptions: LevelUpOption[] = [];
+    for (const w of shuffledWeapons) {
+      if (limitBreakOptions.length >= 3) break;
+      const currentLB = weaponMaxLevels[w.definitionId] ?? 0;
+      // Only count limit break levels (levels beyond max weapon level)
+      const def = WEAPONS[w.definitionId];
+      const maxLevel = def?.maxLevel ?? 8;
+      const limitBreakLevel = Math.max(0, currentLB - maxLevel);
+      limitBreakOptions.push({
+        type: 'limit_break',
+        weaponId: w.definitionId,
+        level: limitBreakLevel + 1,
+      });
+    }
+    return limitBreakOptions;
+  }
+
   return shuffleArray(options).slice(0, 3);
 }
 
@@ -215,6 +237,7 @@ export const useGameStore = create<GameState>()((set) => ({
   augmentOptions: [],
   augmentOffersGiven: 0,
   hyperModeEnabled: false,
+  gameMode: 'survival',
 
   reset: () =>
     set({
@@ -249,6 +272,7 @@ export const useGameStore = create<GameState>()((set) => ({
       augmentOptions: [],
       augmentOffersGiven: 0,
       hyperModeEnabled: false,
+      gameMode: 'survival',
     }),
 
   startRun: () => {
@@ -306,6 +330,7 @@ export const useGameStore = create<GameState>()((set) => ({
       augmentOptions: firstAugmentOptions,
       augmentOffersGiven: 1,
       hyperModeEnabled,
+      gameMode: (meta as unknown as { selectedGameMode?: 'survival' | 'endless' }).selectedGameMode ?? 'survival',
     });
   },
 
@@ -314,9 +339,6 @@ export const useGameStore = create<GameState>()((set) => ({
   tick: (delta) =>
     set((state) => {
       const newTime = state.elapsedTime + delta;
-      if (newTime >= 1800) {
-        return { elapsedTime: 1800, phase: 'gameover' };
-      }
 
       // Check for augment offers at minute 11 (660s) and 21 (1260s)
       if (
@@ -369,7 +391,7 @@ export const useGameStore = create<GameState>()((set) => ({
         player.xp -= player.xpToNextLevel;
         player.level += 1;
         player.xpToNextLevel = xpForLevel(player.level);
-        const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds);
+        const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds, state.weaponMaxLevels);
         SoundManager.levelUp();
         return { player, phase: 'levelup', levelUpOptions: options };
       }
@@ -405,6 +427,14 @@ export const useGameStore = create<GameState>()((set) => ({
     set((state) => {
       const weaponMaxLevels = { ...state.weaponMaxLevels };
 
+      if (option.type === 'limit_break' && option.weaponId) {
+        const def = WEAPONS[option.weaponId];
+        const maxLevel = def?.maxLevel ?? 8;
+        const currentLB = weaponMaxLevels[option.weaponId] ?? maxLevel;
+        weaponMaxLevels[option.weaponId] = currentLB + 1;
+        return { phase: 'playing', levelUpOptions: [], weaponMaxLevels };
+      }
+
       if (option.type === 'new_item' && option.itemId) {
         const items = [...state.items];
         items.push({ definitionId: option.itemId, level: 1 });
@@ -437,7 +467,7 @@ export const useGameStore = create<GameState>()((set) => ({
   reroll: () =>
     set((state) => {
       if (state.rerollCount <= 0 || state.phase !== 'levelup') return {};
-      const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds);
+      const options = generateLevelUpOptions(state.weapons, state.items, state.banishedIds, state.weaponMaxLevels);
       return { levelUpOptions: options, rerollCount: state.rerollCount - 1 };
     }),
 

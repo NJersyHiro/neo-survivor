@@ -113,11 +113,11 @@ export default function Enemies() {
       }
     }
 
-    // --- Kill screen / System Purge logic ---
+    // --- Kill screen / System Purge logic (survival mode only) ---
     const prevTime = prevTimeRef.current;
     prevTimeRef.current = elapsedTime;
 
-    if (elapsedTime >= 1800) {
+    if (elapsedTime >= 1800 && store.gameMode === 'survival') {
       // First System Purge: spawn when crossing 1800 for the first time
       if (prevTime < 1800) {
         reaperTimerRef.current = 0;

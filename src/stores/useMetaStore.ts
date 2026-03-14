@@ -40,6 +40,7 @@ interface MetaState {
   perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
   encounteredEnemyIds: string[];
   hyperModeActive: boolean;
+  selectedGameMode: 'survival' | 'endless';
 
   load: () => Promise<void>;
   addCredits: (amount: number) => void;
@@ -66,6 +67,7 @@ interface MetaState {
   unlockHyperMode: (stageId: string) => void;
   setHyperModeActive: (active: boolean) => void;
   addEncounteredEnemy: (enemyId: string) => void;
+  setGameMode: (mode: 'survival' | 'endless') => void;
   resetAll: () => void;
 }
 
@@ -92,6 +94,7 @@ function createDefaultState() {
     perStageStats: {} as Record<string, { bestLevel: number; bestTime: number }>,
     encounteredEnemyIds: [] as string[],
     hyperModeActive: false,
+    selectedGameMode: 'survival' as const,
   };
 }
 
@@ -122,6 +125,7 @@ function stateToSaveData(state: MetaState): SaveData {
     perWeaponStats: { ...state.perWeaponStats },
     perStageStats: { ...state.perStageStats },
     encounteredEnemyIds: [...state.encounteredEnemyIds],
+    selectedGameMode: state.selectedGameMode,
   };
 }
 
@@ -188,6 +192,7 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         perWeaponStats: data.perWeaponStats ?? {},
         perStageStats: data.perStageStats ?? {},
         encounteredEnemyIds: data.encounteredEnemyIds ?? [],
+        selectedGameMode: (data as SaveData & { selectedGameMode?: 'survival' | 'endless' }).selectedGameMode ?? 'survival',
       });
     }
   },
@@ -402,6 +407,11 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
     const state = get();
     if (state.encounteredEnemyIds.includes(enemyId)) return;
     set({ encounteredEnemyIds: [...state.encounteredEnemyIds, enemyId] });
+    void SaveManager.save(stateToSaveData(get()));
+  },
+
+  setGameMode: (mode) => {
+    set({ selectedGameMode: mode });
     void SaveManager.save(stateToSaveData(get()));
   },
 

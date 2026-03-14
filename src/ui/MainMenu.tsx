@@ -16,6 +16,49 @@ function formatTime(seconds: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+function GameModeSelector() {
+  const selectedGameMode = useMetaStore((s) => s.selectedGameMode);
+
+  return (
+    <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+      <button
+        onClick={() => { SoundManager.buttonClick(); useMetaStore.getState().setGameMode('survival'); }}
+        style={{
+          background: selectedGameMode === 'survival' ? '#00ffff' : 'transparent',
+          color: selectedGameMode === 'survival' ? '#000' : '#00ffff',
+          border: '2px solid #00ffff',
+          borderRadius: 8,
+          padding: '10px 24px',
+          fontSize: 16,
+          fontWeight: 'bold',
+          fontFamily: "'Courier New', monospace",
+          cursor: 'pointer',
+          boxShadow: selectedGameMode === 'survival' ? '0 0 12px #00ffff' : 'none',
+        }}
+      >
+        SURVIVAL
+      </button>
+      <button
+        onClick={() => { SoundManager.buttonClick(); useMetaStore.getState().setGameMode('endless'); }}
+        style={{
+          background: selectedGameMode === 'endless' ? '#ff4444' : 'transparent',
+          color: selectedGameMode === 'endless' ? '#000' : '#ff4444',
+          border: '2px solid #ff4444',
+          borderRadius: 8,
+          padding: '10px 24px',
+          fontSize: 16,
+          fontWeight: 'bold',
+          fontFamily: "'Courier New', monospace",
+          cursor: 'pointer',
+          boxShadow: selectedGameMode === 'endless' ? '0 0 12px #ff4444' : 'none',
+        }}
+      >
+        ENDLESS
+      </button>
+    </div>
+  );
+}
+
 export default function MainMenu() {
   const phase = useGameStore((s) => s.phase);
   const stats = useMetaStore((s) => s.stats);
@@ -145,6 +188,9 @@ export default function MainMenu() {
           }}>
             NEO SURVIVOR
           </div>
+          {/* Game Mode Selector */}
+          <GameModeSelector />
+
           <button onClick={() => { SoundManager.unlock(); SoundManager.buttonClick(); useMetaStore.getState().setHyperModeActive(hyperEnabled && hyperModeStageIds.includes(selectedStageId)); useGameStore.getState().startRun(); }} style={{
             background: '#00ffff', color: '#000', border: 'none', borderRadius: 8,
             padding: '16px 64px', fontSize: 24, fontWeight: 'bold',
@@ -303,6 +349,7 @@ export default function MainMenu() {
                   perWeaponStats: { ...(s.perWeaponStats ?? {}) },
                   perStageStats: { ...(s.perStageStats ?? {}) },
                   encounteredEnemyIds: [...(s.encounteredEnemyIds ?? [])],
+                  selectedGameMode: s.selectedGameMode,
                 });
               }}
               style={{

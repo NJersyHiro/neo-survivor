@@ -21,6 +21,7 @@ describe('useGameStore', () => {
       upgrades: {},
       unlockedWeaponIds: ['plasma_bolt'],
       unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
+      selectedGameMode: 'survival' as const,
     });
   });
 
@@ -107,12 +108,25 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().elapsedTime).toBeCloseTo(1.5);
   });
 
-  it('tick triggers gameover at 1800 seconds', () => {
+  it('tick does not trigger gameover at 1800 seconds (reaper handles death)', () => {
     startRunAndPlay();
-    useGameStore.getState().tick(1800);
+    // Set elapsed time just below 1800 to avoid triggering augment offers during the tick
+    useGameStore.setState({ elapsedTime: 1799, augmentOffersGiven: 3 });
+    useGameStore.getState().tick(1);
     const state = useGameStore.getState();
-    expect(state.phase).toBe('gameover');
+    expect(state.phase).toBe('playing');
     expect(state.elapsedTime).toBe(1800);
+  });
+
+  it('tick continues past 1800 seconds in endless mode', () => {
+    useMetaStore.setState({ selectedGameMode: 'endless' });
+    startRunAndPlay();
+    // Set elapsed time just below 2000 to avoid triggering augment offers during the tick
+    useGameStore.setState({ elapsedTime: 1999, augmentOffersGiven: 3 });
+    useGameStore.getState().tick(1);
+    const state = useGameStore.getState();
+    expect(state.phase).toBe('playing');
+    expect(state.elapsedTime).toBe(2000);
   });
 
   it('movePlayer clamps to bounds', () => {

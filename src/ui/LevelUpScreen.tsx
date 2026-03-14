@@ -62,10 +62,11 @@ function OptionCard({
   onClick: () => void;
   banishMode: boolean;
 }) {
+  const isLimitBreak = option.type === 'limit_break';
   const isItem = option.type === 'new_item' || option.type === 'upgrade_item';
   const id = isItem ? option.itemId : option.weaponId;
   const def = isItem ? (id ? ITEMS[id] : undefined) : (id ? WEAPONS[id] : undefined);
-  const accentColor = isItem ? '#ff00ff' : '#00ffff';
+  const accentColor = isLimitBreak ? '#ffaa00' : isItem ? '#ff00ff' : '#00ffff';
 
   if (!def) return null;
 
@@ -75,7 +76,7 @@ function OptionCard({
   const cardStyle: React.CSSProperties = {
     border: `1px solid ${borderColor}`,
     borderRadius: '12px',
-    background: 'rgba(10, 10, 30, 0.9)',
+    background: isLimitBreak ? 'rgba(30, 20, 0, 0.9)' : 'rgba(10, 10, 30, 0.9)',
     padding: '1.5rem',
     width: '220px',
     cursor: 'pointer',
@@ -90,7 +91,7 @@ function OptionCard({
       onTouchEnd={(e) => { e.preventDefault(); onClick(); }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        const hoverColor = banishMode ? '#ff0044' : '#ff00ff';
+        const hoverColor = banishMode ? '#ff0044' : isLimitBreak ? '#ffcc00' : '#ff00ff';
         Object.assign(e.currentTarget.style, {
           borderColor: hoverColor,
           boxShadow: `0 0 15px ${hoverColor}80`,
@@ -107,11 +108,12 @@ function OptionCard({
         style={{
           marginBottom: '0.5rem',
           fontSize: '0.75rem',
-          color: isNew ? '#00ff88' : '#ffaa00',
+          color: isLimitBreak ? '#ffaa00' : isNew ? '#00ff88' : '#ffaa00',
           fontFamily,
+          textShadow: isLimitBreak ? '0 0 8px #ffaa00' : undefined,
         }}
       >
-        {isNew ? 'NEW' : `Lv ${option.level}`}
+        {isLimitBreak ? 'LIMIT BREAK' : isNew ? 'NEW' : `Lv ${option.level}`}
       </div>
       <div
         style={{
@@ -120,6 +122,7 @@ function OptionCard({
           marginBottom: '0.5rem',
           color: accentColor,
           fontFamily,
+          textShadow: isLimitBreak ? '0 0 10px #ffaa00' : undefined,
         }}
       >
         {def.name}
@@ -127,15 +130,15 @@ function OptionCard({
       <div
         style={{
           fontSize: '0.8rem',
-          color: '#aaaaaa',
+          color: isLimitBreak ? '#ffcc88' : '#aaaaaa',
           marginBottom: '0.75rem',
           lineHeight: '1.3',
           fontFamily,
         }}
       >
-        {def.description}
+        {isLimitBreak ? `+10% DMG (Lv ${option.level})` : def.description}
       </div>
-      {isItem && 'stats' in def && (
+      {!isLimitBreak && isItem && 'stats' in def && (
         <div style={{ fontSize: '0.75rem', color: '#dd88ff', fontFamily }}>
           {Object.entries((def as { stats: Record<string, number> }).stats).map(([key, val]) => (
             <div key={key}>
@@ -144,7 +147,7 @@ function OptionCard({
           ))}
         </div>
       )}
-      {!isItem && 'baseDamage' in def && (
+      {!isLimitBreak && !isItem && 'baseDamage' in def && (
         <div style={{ fontSize: '0.75rem', color: '#888888', fontFamily }}>
           <div>DMG: {(def as { baseDamage: number; damagePerLevel: number }).baseDamage + (def as { baseDamage: number; damagePerLevel: number }).damagePerLevel * (option.level - 1)}</div>
           <div>CD: {(def as { cooldown: number }).cooldown.toFixed(1)}s</div>

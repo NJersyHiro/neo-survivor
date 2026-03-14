@@ -30,6 +30,7 @@ export default function HUD() {
   const killCount = useGameStore((s) => s.killCount);
   const weapons = useGameStore((s) => s.weapons);
   const items = useGameStore((s) => s.items);
+  const gameMode = useGameStore((s) => s.gameMode);
 
   const [evolutionMsg, setEvolutionMsg] = useState<string | null>(null);
   const prevEvolvedIdsRef = useRef<Set<string>>(new Set());
@@ -127,13 +128,34 @@ export default function HUD() {
           top: 'calc(var(--sat) + 4px)',
           left: '50%',
           transform: 'translateX(-50%)',
-          color: '#00ffff',
-          fontSize: 28,
-          fontWeight: 'bold',
-          textShadow: '0 0 10px #00ffff, 0 0 20px #00ffff',
+          textAlign: 'center',
         }}
       >
-        {formatTime(elapsedTime)}
+        <div
+          style={{
+            color: elapsedTime >= 1800 && gameMode === 'survival' ? '#ff0000' : '#00ffff',
+            fontSize: 28,
+            fontWeight: 'bold',
+            textShadow: elapsedTime >= 1800 && gameMode === 'survival'
+              ? '0 0 10px #ff0000, 0 0 20px #ff0000'
+              : '0 0 10px #00ffff, 0 0 20px #00ffff',
+          }}
+        >
+          {formatTime(elapsedTime)}
+        </div>
+        {elapsedTime >= 1800 && gameMode === 'survival' && (
+          <div
+            style={{
+              color: '#ff0000',
+              fontSize: 14,
+              fontWeight: 'bold',
+              textShadow: '0 0 8px #ff0000, 0 0 16px #ff0000',
+              animation: 'systemPurgeFlash 0.5s ease-in-out infinite alternate',
+            }}
+          >
+            SYSTEM PURGE
+          </div>
+        )}
       </div>
 
       {/* Top-right: Kills + Menu */}

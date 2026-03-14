@@ -47,7 +47,11 @@ export default function Projectiles() {
       cooldowns.set(weapon.definitionId, getWeaponCooldown(weapon.definitionId, weapon.level) * (1 + stats.cooldown / 100) * augMods.cooldownMultiplier);
 
       const baseDamage = getWeaponDamage(weapon.definitionId, weapon.level, player.might + stats.might);
-      const damage = Math.floor(baseDamage * augMods.mightMultiplier);
+      const def_wb = WEAPONS[weapon.definitionId];
+      const maxLevel = def_wb?.maxLevel ?? 8;
+      const lbStoredLevel = store.weaponMaxLevels[weapon.definitionId] ?? 0;
+      const limitBreakLevel = Math.max(0, lbStoredLevel - maxLevel);
+      const damage = Math.floor(baseDamage * augMods.mightMultiplier * (1 + limitBreakLevel * 0.1));
 
       if (def.category === 'melee') {
         // Damage all enemies within area (apply augment area multiplier)
