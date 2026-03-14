@@ -89,12 +89,12 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().elapsedTime).toBeCloseTo(1.5);
   });
 
-  it('tick triggers gameover at 900 seconds', () => {
+  it('tick triggers gameover at 1800 seconds', () => {
     useGameStore.getState().startRun();
-    useGameStore.getState().tick(900);
+    useGameStore.getState().tick(1800);
     const state = useGameStore.getState();
     expect(state.phase).toBe('gameover');
-    expect(state.elapsedTime).toBe(900);
+    expect(state.elapsedTime).toBe(1800);
   });
 
   it('movePlayer clamps to bounds', () => {

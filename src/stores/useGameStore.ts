@@ -5,6 +5,7 @@ import type {
   WeaponInstance,
   ItemInstance,
   EnemyInstance,
+  EnemyProjectileInstance,
   ProjectileInstance,
   XPGemInstance,
   LevelUpOption,
@@ -18,6 +19,7 @@ import { useMetaStore } from './useMetaStore';
 import { ENEMIES } from '../data/enemies';
 import { CHARACTERS } from '../data/characters';
 import { SoundManager } from '../game/SoundManager';
+import { generateId } from '../utils/math';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -63,13 +65,17 @@ interface GameState {
   hasEvolvedThisRun: boolean;
   weaponMaxLevels: Record<string, number>;
   razorWireTimer: number;
+  enemyProjectiles: EnemyProjectileInstance[];
+  hyperModeEnabled: boolean;
 
   reset: () => void;
   startRun: () => void;
   setPhase: (phase: GamePhase) => void;
   tick: (delta: number) => void;
   addXP: (amount: number) => void;
-  takeDamage: (amount: number) => void;
+  takeDamage: (amount: number, isReaper?: boolean) => void;
+  addEnemyProjectile: (proj: EnemyProjectileInstance) => void;
+  tickEnemyProjectiles: (delta: number) => void;
   selectLevelUpOption: (option: LevelUpOption) => void;
   reroll: () => void;
   skip: () => void;
@@ -192,6 +198,8 @@ export const useGameStore = create<GameState>()((set) => ({
   hasEvolvedThisRun: false,
   weaponMaxLevels: {} as Record<string, number>,
   razorWireTimer: 0,
+  enemyProjectiles: [],
+  hyperModeEnabled: false,
 
   reset: () =>
     set({
@@ -220,10 +228,13 @@ export const useGameStore = create<GameState>()((set) => ({
       hasEvolvedThisRun: false,
       weaponMaxLevels: {} as Record<string, number>,
       razorWireTimer: 0,
+      enemyProjectiles: [],
+      hyperModeEnabled: false,
     }),
 
   startRun: () => {
     const meta = useMetaStore.getState();
+    const hyperModeEnabled = (meta as any).hyperModeActive && meta.hyperModeStageIds.includes(meta.selectedStageId);
     const extraRerolls = meta.getUpgradeLevel('extra_reroll');
     const revives = meta.getUpgradeLevel('revival_kit');
     const characterId = meta.selectedCharacterId;
@@ -266,6 +277,8 @@ export const useGameStore = create<GameState>()((set) => ({
       hasEvolvedThisRun: false,
       weaponMaxLevels: {} as Record<string, number>,
       razorWireTimer: 0,
+      enemyProjectiles: [],
+      hyperModeEnabled,
     });
   },
 
@@ -274,8 +287,8 @@ export const useGameStore = create<GameState>()((set) => ({
   tick: (delta) =>
     set((state) => {
       const newTime = state.elapsedTime + delta;
-      if (newTime >= 900) {
-        return { elapsedTime: 900, phase: 'gameover' };
+      if (newTime >= 1800) {
+        return { elapsedTime: 1800, phase: 'gameover' };
       }
       return { elapsedTime: newTime };
     }),
@@ -283,7 +296,8 @@ export const useGameStore = create<GameState>()((set) => ({
   addXP: (amount) =>
     set((state) => {
       const player = { ...state.player };
-      player.xp += amount;
+      const xpAmount = state.hyperModeEnabled ? amount * 1.5 : amount;
+      player.xp += xpAmount;
 
       if (player.xp >= player.xpToNextLevel) {
         player.xp -= player.xpToNextLevel;
@@ -297,9 +311,13 @@ export const useGameStore = create<GameState>()((set) => ({
       return { player };
     }),
 
-  takeDamage: (amount) =>
+  takeDamage: (amount, isReaper = false) =>
     set((state) => {
       const player = { ...state.player };
+      if (isReaper) {
+        player.hp = 0;
+        return { player, phase: 'gameover' as const, damageTaken: state.damageTaken + amount };
+      }
       const effectiveDamage = Math.max(0, amount - player.armor);
       player.hp -= effectiveDamage;
 
@@ -390,16 +408,53 @@ export const useGameStore = create<GameState>()((set) => ({
       const isCrit = stats.critChance > 0 && Math.random() * 100 < stats.critChance;
       if (isCrit) finalDamage *= 2;
 
-      const enemies = state.enemies.map((e) =>
-        e.id === id ? { ...e, hp: e.hp - finalDamage } : e
-      );
+      // Map enemies, applying damage with shield absorption
+      const enemies = state.enemies.map((e) => {
+        if (e.id !== id) return e;
+        const def = ENEMIES[e.definitionId];
+        // Skip damage for null_entity
+        if (def?.id === 'null_entity') return e;
+
+        let dmg = finalDamage;
+        let shieldHp = e.shieldHp ?? 0;
+        let shieldBrokeAt = e.shieldBrokeAt;
+
+        if (shieldHp > 0) {
+          const absorbed = Math.min(shieldHp, dmg);
+          shieldHp -= absorbed;
+          dmg -= absorbed;
+          if (shieldHp === 0 && (e.shieldHp ?? 0) > 0) {
+            shieldBrokeAt = state.elapsedTime;
+          }
+        }
+
+        return { ...e, hp: e.hp - dmg, shieldHp, shieldBrokeAt };
+      });
+
       const dead = enemies.filter((e) => e.hp <= 0);
       const alive = enemies.filter((e) => e.hp > 0);
 
       let creditGain = 0;
       let newBossKills = 0;
+      const extraEnemies: EnemyInstance[] = [];
+
       for (const d of dead) {
         const def = ENEMIES[d.definitionId];
+        // Don't give credits for reaper kills
+        if (def?.isReaper) {
+          // If system_purge dies, spawn null_entity
+          if (def.id === 'system_purge') {
+            extraEnemies.push({
+              id: generateId(),
+              definitionId: 'null_entity',
+              position: { ...d.position },
+              hp: ENEMIES['null_entity']!.hp,
+              maxHp: ENEMIES['null_entity']!.hp,
+            });
+          }
+          newBossKills += def.isBoss ? 1 : 0;
+          continue;
+        }
         if (def?.isBoss) {
           creditGain += 25 + Math.floor(Math.random() * 26);
           newBossKills += 1;
@@ -408,8 +463,28 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
+      // Apply hyper mode credit multiplier
+      if (state.hyperModeEnabled && creditGain > 0) {
+        creditGain = Math.floor(creditGain * 1.5);
+      }
+
       let player = state.player;
       let actualHeal = 0;
+      let playerDamageFromExplosion = 0;
+
+      // Check for explosion on death
+      for (const d of dead) {
+        const def = ENEMIES[d.definitionId];
+        if (def?.onDeath === 'explode' && def.explosionDamage != null && def.explosionRadius != null) {
+          const dx = player.position.x - d.position.x;
+          const dz = player.position.z - d.position.z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < def.explosionRadius) {
+            playerDamageFromExplosion += Math.max(0, def.explosionDamage - player.armor);
+          }
+        }
+      }
+
       if (stats.lifesteal > 0 && finalDamage > 0) {
         const healAmount = finalDamage * stats.lifesteal / 100;
         const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
@@ -419,14 +494,32 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
-      return {
-        enemies: alive,
+      // Apply explosion damage to player
+      let explosionPhase: GamePhase | undefined;
+      if (playerDamageFromExplosion > 0) {
+        const newHp = player.hp - playerDamageFromExplosion;
+        if (newHp <= 0) {
+          player = { ...player, hp: 0 };
+          explosionPhase = 'gameover';
+        } else {
+          player = { ...player, hp: newHp };
+        }
+      }
+
+      const result: Partial<GameState> = {
+        enemies: [...alive, ...extraEnemies],
         killCount: state.killCount + dead.length,
         creditsEarned: state.creditsEarned + creditGain,
         bossKills: state.bossKills + newBossKills,
         player,
         hpRecovered: state.hpRecovered + Math.max(0, actualHeal),
       };
+
+      if (explosionPhase) {
+        result.phase = explosionPhase;
+      }
+
+      return result;
     }),
 
   addProjectile: (proj) =>
@@ -565,6 +658,54 @@ export const useGameStore = create<GameState>()((set) => ({
         creditsEarned: state.creditsEarned + creditGain,
         bossKills: state.bossKills + newBossKills,
         razorWireTimer: timer,
+      };
+    }),
+
+  addEnemyProjectile: (proj) =>
+    set((state) => {
+      if (state.enemyProjectiles.length >= 100) return {};
+      return { enemyProjectiles: [...state.enemyProjectiles, proj] };
+    }),
+
+  tickEnemyProjectiles: (delta) =>
+    set((state) => {
+      const player = state.player;
+      let hp = player.hp;
+      let damageTaken = state.damageTaken;
+      const alive: EnemyProjectileInstance[] = [];
+
+      for (const proj of state.enemyProjectiles) {
+        const newAge = proj.age + delta;
+        if (newAge > 3) continue;
+        const newPos = {
+          x: proj.position.x + proj.velocity.x * delta,
+          y: 0,
+          z: proj.position.z + proj.velocity.z * delta,
+        };
+        if (Math.abs(newPos.x) > 24 || Math.abs(newPos.z) > 24) continue;
+        const dx = newPos.x - player.position.x;
+        const dz = newPos.z - player.position.z;
+        if (Math.sqrt(dx * dx + dz * dz) < 0.5) {
+          const effectiveDmg = Math.max(0, proj.damage - player.armor);
+          hp -= effectiveDmg;
+          damageTaken += effectiveDmg;
+          continue;
+        }
+        alive.push({ ...proj, position: newPos, age: newAge });
+      }
+
+      if (hp <= 0) {
+        return {
+          enemyProjectiles: alive,
+          player: { ...player, hp: 0 },
+          phase: 'gameover' as const,
+          damageTaken,
+        };
+      }
+      return {
+        enemyProjectiles: alive,
+        player: hp !== player.hp ? { ...player, hp } : player,
+        damageTaken,
       };
     }),
 }));
