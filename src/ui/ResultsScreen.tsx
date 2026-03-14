@@ -26,7 +26,7 @@ export default function ResultsScreen() {
 
   if (phase !== 'gameover') return null;
 
-  const survived = elapsedTime >= 900;
+  const survived = elapsedTime >= 1800;
   const titleText = survived ? 'SYSTEM SURVIVED' : 'SYSTEM TERMINATED';
   const titleColor = survived ? '#00ff88' : '#ff3366';
   const runEndBonus = Math.floor(50 + killCount * 0.5 + elapsedTime * 0.2);
@@ -46,6 +46,14 @@ export default function ResultsScreen() {
       weaponMaxLevels: useGameStore.getState().weaponMaxLevels,
     });
     const newlyUnlocked = useMetaStore.getState().checkAllUnlocks();
+    if (survived) {
+      const meta = useMetaStore.getState();
+      if (!meta.hyperModeStageIds.includes(meta.selectedStageId)) {
+        // unlockHyperMode will be added to MetaStore in Task 10
+        // For now, just check — the method will be wired up in the next task
+        (useMetaStore.getState() as any).unlockHyperMode?.(meta.selectedStageId);
+      }
+    }
     if (newlyUnlocked.length > 0) {
       const names = newlyUnlocked.map((id) => {
         if (CHARACTERS[id]) return `CHARACTER: ${CHARACTERS[id]!.name}`;
