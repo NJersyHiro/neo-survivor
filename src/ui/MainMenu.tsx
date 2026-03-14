@@ -27,9 +27,11 @@ export default function MainMenu() {
   const selectedCharacterId = useMetaStore((s) => s.selectedCharacterId);
   const unlockedStageIds = useMetaStore((s) => s.unlockedStageIds);
   const selectedStageId = useMetaStore((s) => s.selectedStageId);
+  const hyperModeStageIds = useMetaStore((s) => s.hyperModeStageIds);
   const unlockedWeaponIds = useMetaStore((s) => s.unlockedWeaponIds);
   const unlockedItemIds = useMetaStore((s) => s.unlockedItemIds);
   const [tab, setTab] = useState<'play' | 'shop' | 'achievements'>('play');
+  const [hyperEnabled, setHyperEnabled] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     characters: true, weapons: false, items: false, stages: false,
   });
@@ -106,7 +108,7 @@ export default function MainMenu() {
           }}>
             NEO SURVIVOR
           </div>
-          <button onClick={() => { SoundManager.unlock(); SoundManager.buttonClick(); useGameStore.getState().startRun(); }} style={{
+          <button onClick={() => { SoundManager.unlock(); SoundManager.buttonClick(); useMetaStore.getState().setHyperModeActive(hyperEnabled && hyperModeStageIds.includes(selectedStageId)); useGameStore.getState().startRun(); }} style={{
             background: '#00ffff', color: '#000', border: 'none', borderRadius: 8,
             padding: '16px 64px', fontSize: 24, fontWeight: 'bold',
             fontFamily: "'Courier New', monospace", cursor: 'pointer',
@@ -204,6 +206,29 @@ export default function MainMenu() {
                       {def.unlockCondition.description}
                     </div>
                   )}
+                  {hyperModeStageIds.includes(id) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        SoundManager.buttonClick();
+                        setHyperEnabled(!hyperEnabled);
+                      }}
+                      style={{
+                        background: hyperEnabled ? '#ff0000' : 'transparent',
+                        color: hyperEnabled ? '#fff' : '#ff0000',
+                        border: '1px solid #ff0000',
+                        borderRadius: 4,
+                        padding: '2px 6px',
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        fontFamily: "'Courier New', monospace",
+                        cursor: 'pointer',
+                        marginTop: 4,
+                      }}
+                    >
+                      HYPER
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -239,6 +264,7 @@ export default function MainMenu() {
                   selectedStageId: s.selectedStageId ?? 'neon_district',
                   perCharacterStats: { ...(s.perCharacterStats ?? {}) },
                   perWeaponStats: { ...(s.perWeaponStats ?? {}) },
+                  perStageStats: { ...(s.perStageStats ?? {}) },
                 });
               }}
               style={{
