@@ -10,7 +10,7 @@ Transform the game from a single enemy set with continuous spawning into 4 disti
 
 ### 1.1 Timer Extension
 
-Change the run duration from 15 minutes (900s) to 30 minutes (1800s). The `tick()` function no longer force-ends the game at any time — the kill screen entity is what ends runs.
+Change the run duration from 15 minutes (900s) to 30 minutes (1800s). The `tick()` function force-ends the game at 1800s with `survived = true` (the player beat the stage). The System Purge kill screen spawns at 30:00 to make surviving those final seconds extremely difficult — it's the ultimate test.
 
 The `survived` condition in ResultsScreen changes from `elapsedTime >= 900` to `elapsedTime >= 1800`.
 
@@ -68,7 +68,12 @@ export interface EnemyDefinition {
   projectileInterval?: number;
   attackRange?: number;
   onDeath?: EnemyOnDeath;
+  explosionDamage?: number;
+  explosionRadius?: number;
+  splitInto?: string;
   aura?: EnemyAura;
+  auraValue?: number;    // magnitude: 0.25 = +25%, 2 = 2hp/s heal
+  auraRadius?: number;   // default 3
   shieldHp?: number;
   shieldRegenDelay?: number;
   teleportInterval?: number;
@@ -83,7 +88,7 @@ Default behavior is `'chase'` (current behavior). All existing enemies keep thei
 
 ### 2.2 EnemyInstance Extension
 
-Add fields to track runtime state:
+Complete interface (replaces existing EnemyInstance):
 
 ```typescript
 export interface EnemyInstance {
@@ -105,47 +110,47 @@ Each stage has 5 regular enemies + 1 boss = 6 enemies. Total: 24 stage enemies +
 
 #### Neon District (Stage 1) — Basic, no special mechanics
 
-| ID | Name | Archetype | HP | Dmg | Speed | Behavior | Special |
-|----|------|-----------|-----|-----|-------|----------|---------|
-| nd_drone | Street Drone | Swarmer | 20 | 5 | 2.5 | chase | — |
-| nd_speeder | Neon Runner | Fast | 12 | 4 | 5.0 | chase | — |
-| nd_enforcer | Enforcer | Tank | 80 | 10 | 1.2 | chase | — |
-| nd_turret | Street Turret | Ranged | 30 | 3 | 1.0 | ranged | projectile, range 10 |
-| nd_elite | Neon Elite | Elite | 120 | 12 | 2.0 | chase | — |
-| nd_boss | Circuit Breaker | Boss | 800 | 15 | 1.5 | chase | bossScale 2.5 |
+| ID | Name | Archetype | HP | Dmg | Speed | XP | Behavior | Special |
+|----|------|-----------|-----|-----|-------|----|----------|---------|
+| nd_drone | Street Drone | Swarmer | 20 | 5 | 2.5 | 1 | chase | — |
+| nd_speeder | Neon Runner | Fast | 12 | 4 | 5.0 | 2 | chase | — |
+| nd_enforcer | Enforcer | Tank | 80 | 10 | 1.2 | 5 | chase | — |
+| nd_turret | Street Turret | Ranged | 30 | 3 | 1.0 | 3 | ranged | projDmg 8, projSpd 8, projInt 2.0s, range 10 |
+| nd_elite | Neon Elite | Elite | 120 | 12 | 2.0 | 8 | chase | — |
+| nd_boss | Circuit Breaker | Boss | 800 | 15 | 1.5 | 50 | chase | bossScale 2.5 |
 
 #### Data Mines (Stage 2) — Enemies gain abilities
 
-| ID | Name | Archetype | HP | Dmg | Speed | Behavior | Special |
-|----|------|-----------|-----|-----|-------|----------|---------|
-| dm_crawler | Crawler | Swarmer | 30 | 7 | 2.8 | chase | — |
-| dm_glitch | Glitch | Fast | 18 | 5 | 4.5 | teleport_chase | teleports every 4s |
-| dm_golem | Data Golem | Tank | 150 | 12 | 1.0 | chase | shield 50hp, regen 3s |
-| dm_laser | Laser Node | Ranged | 45 | 4 | 0.8 | ranged | projectile, range 12 |
-| dm_virus | Virus Elite | Elite | 180 | 15 | 2.2 | chase | — |
-| dm_boss | Data Worm | Boss | 1500 | 20 | 1.8 | chase | bossScale 3.0 |
+| ID | Name | Archetype | HP | Dmg | Speed | XP | Behavior | Special |
+|----|------|-----------|-----|-----|-------|----|----------|---------|
+| dm_crawler | Crawler | Swarmer | 30 | 7 | 2.8 | 2 | chase | — |
+| dm_glitch | Glitch | Fast | 18 | 5 | 4.5 | 3 | teleport_chase | teleports every 4s |
+| dm_golem | Data Golem | Tank | 150 | 12 | 1.0 | 8 | chase | shield 50hp, regen 3s |
+| dm_laser | Laser Node | Ranged | 45 | 4 | 0.8 | 5 | ranged | projDmg 12, projSpd 10, projInt 1.8s, range 12 |
+| dm_virus | Virus Elite | Elite | 180 | 15 | 2.2 | 12 | chase | — |
+| dm_boss | Data Worm | Boss | 1500 | 20 | 1.8 | 80 | chase | bossScale 3.0 |
 
 #### Orbital Station (Stage 3) — Faster, deadlier
 
-| ID | Name | Archetype | HP | Dmg | Speed | Behavior | Special |
-|----|------|-----------|-----|-----|-------|----------|---------|
-| os_probe | Probe | Swarmer | 40 | 9 | 3.2 | chase | — |
-| os_interceptor | Interceptor | Fast | 25 | 7 | 5.5 | chase | — |
-| os_mech | Heavy Mech | Tank | 250 | 15 | 1.0 | chase | explodes on death (dmg 20, radius 2.0) |
-| os_sentry | Plasma Sentry | Ranged | 60 | 5 | 0.6 | ranged | homing projectile, range 14 |
-| os_commander | Commander | Elite | 300 | 18 | 2.5 | chase | aura: buff_damage (+25% to nearby) |
-| os_boss | Station Core | Boss | 3000 | 25 | 1.2 | chase | bossScale 3.5 |
+| ID | Name | Archetype | HP | Dmg | Speed | XP | Behavior | Special |
+|----|------|-----------|-----|-----|-------|----|----------|---------|
+| os_probe | Probe | Swarmer | 40 | 9 | 3.2 | 3 | chase | — |
+| os_interceptor | Interceptor | Fast | 25 | 7 | 5.5 | 4 | chase | — |
+| os_mech | Heavy Mech | Tank | 250 | 15 | 1.0 | 12 | chase | onDeath: explode, explDmg 20, explRad 2.0 |
+| os_sentry | Plasma Sentry | Ranged | 60 | 5 | 0.6 | 7 | ranged | aimed projectile, projDmg 15, projSpd 12, projInt 1.5s, range 14 |
+| os_commander | Commander | Elite | 300 | 18 | 2.5 | 15 | chase | aura: buff_damage, auraValue 0.25 |
+| os_boss | Station Core | Boss | 3000 | 25 | 1.2 | 120 | chase | bossScale 3.5 |
 
 #### Core Nexus (Stage 4) — Auras, healing, maximum danger
 
-| ID | Name | Archetype | HP | Dmg | Speed | Behavior | Special |
-|----|------|-----------|-----|-----|-------|----------|---------|
-| cn_fragment | Fragment | Swarmer | 50 | 12 | 3.0 | chase | aura: heal_allies (2hp/s in radius 3) |
-| cn_phaser | Phase Runner | Fast | 35 | 10 | 6.0 | teleport_chase | teleports every 3s |
-| cn_firewall | Firewall | Tank | 400 | 20 | 0.8 | chase | shield 100hp, regen 2s |
-| cn_sniper | Code Sniper | Ranged | 80 | 8 | 0.5 | ranged | fast projectile, range 16 |
-| cn_kernel | Kernel Elite | Elite | 500 | 25 | 2.0 | chase | aura: buff_damage (+40% to nearby) |
-| cn_boss | Nexus Guardian | Boss | 6000 | 30 | 1.5 | chase | bossScale 4.0 |
+| ID | Name | Archetype | HP | Dmg | Speed | XP | Behavior | Special |
+|----|------|-----------|-----|-----|-------|----|----------|---------|
+| cn_fragment | Fragment | Swarmer | 50 | 12 | 3.0 | 4 | chase | aura: heal_allies, auraValue 2, auraRadius 3 |
+| cn_phaser | Phase Runner | Fast | 35 | 10 | 6.0 | 6 | teleport_chase | teleports every 3s |
+| cn_firewall | Firewall | Tank | 400 | 20 | 0.8 | 15 | chase | shield 100hp, regen 2s |
+| cn_sniper | Code Sniper | Ranged | 80 | 8 | 0.5 | 10 | ranged | projDmg 20, projSpd 14, projInt 1.2s, range 16 |
+| cn_kernel | Kernel Elite | Elite | 500 | 25 | 2.0 | 20 | chase | aura: buff_damage, auraValue 0.40 |
+| cn_boss | Nexus Guardian | Boss | 6000 | 30 | 1.5 | 200 | chase | bossScale 4.0 |
 
 ### 2.4 Behavior Implementations
 
@@ -225,6 +230,48 @@ The `hpMultiplier` in the wave entry allows per-wave tuning on top of the global
 
 Create `src/data/waveSchedules.ts` containing all 4 stage schedules. Each schedule is an array of 30 `WaveEntry` objects.
 
+### 3.6 Reference Template — Neon District Wave Schedule
+
+Stages 2-4 follow the same pattern with their own enemies, scaled up in difficulty.
+
+| Min | Enemies (id: weight) | Interval | Count | HP Mult | Pattern | Boss |
+|-----|----------------------|----------|-------|---------|---------|------|
+| 0 | nd_drone:1 | 2.0 | 3 | 1.0 | ring | — |
+| 1 | nd_drone:1 | 1.8 | 4 | 1.0 | ring | — |
+| 2 | nd_drone:3, nd_speeder:1 | 1.6 | 5 | 1.0 | ring | — |
+| 3 | nd_drone:2, nd_speeder:1 | 1.5 | 5 | 1.0 | ring | nd_boss |
+| 4 | nd_drone:2, nd_speeder:2 | 1.4 | 6 | 1.0 | ring | — |
+| 5 | nd_drone:2, nd_speeder:2 | 1.3 | 6 | 1.0 | cluster | nd_boss |
+| 6 | nd_drone:2, nd_speeder:1, nd_turret:1 | 1.2 | 7 | 1.1 | ring | — |
+| 7 | nd_drone:2, nd_speeder:1, nd_turret:1 | 1.2 | 7 | 1.1 | cluster | — |
+| 8 | nd_drone:2, nd_speeder:2, nd_turret:1 | 1.1 | 8 | 1.1 | ring | — |
+| 9 | nd_drone:1, nd_speeder:2, nd_turret:1 | 1.0 | 8 | 1.2 | cluster | — |
+| 10 | nd_drone:1, nd_enforcer:1, nd_turret:1, nd_elite:1 | 1.0 | 8 | 1.2 | ring | nd_boss |
+| 11 | nd_drone:2, nd_enforcer:1, nd_turret:1 | 1.0 | 9 | 1.2 | line | — |
+| 12 | nd_speeder:2, nd_enforcer:1, nd_elite:1 | 0.9 | 9 | 1.3 | ring | — |
+| 13 | nd_drone:1, nd_speeder:1, nd_enforcer:1, nd_turret:1 | 0.9 | 10 | 1.3 | cluster | — |
+| 14 | nd_drone:2, nd_enforcer:1, nd_elite:1 | 0.9 | 10 | 1.3 | line | — |
+| 15 | nd_speeder:1, nd_enforcer:1, nd_turret:1, nd_elite:1 | 0.8 | 10 | 1.4 | ring | nd_boss |
+| 16 | nd_drone:1, nd_speeder:1, nd_enforcer:1, nd_elite:1 | 0.8 | 11 | 1.4 | cluster | — |
+| 17 | nd_drone:1, nd_enforcer:1, nd_turret:1, nd_elite:1 | 0.8 | 11 | 1.4 | line | — |
+| 18 | nd_speeder:2, nd_enforcer:1, nd_elite:2 | 0.7 | 12 | 1.5 | ring | — |
+| 19 | nd_drone:1, nd_speeder:1, nd_enforcer:1, nd_turret:1, nd_elite:1 | 0.7 | 12 | 1.5 | cluster | — |
+| 20 | nd_enforcer:1, nd_turret:1, nd_elite:2 | 0.7 | 13 | 1.5 | ring | nd_boss |
+| 21 | nd_speeder:2, nd_enforcer:1, nd_elite:2 | 0.6 | 13 | 1.6 | line | — |
+| 22 | nd_drone:1, nd_enforcer:1, nd_turret:1, nd_elite:2 | 0.6 | 14 | 1.6 | cluster | — |
+| 23 | nd_speeder:1, nd_enforcer:1, nd_elite:3 | 0.6 | 14 | 1.7 | ring | — |
+| 24 | nd_enforcer:1, nd_turret:1, nd_elite:3 | 0.5 | 15 | 1.7 | line | — |
+| 25 | nd_enforcer:2, nd_elite:3 | 0.5 | 15 | 1.8 | ring | nd_boss |
+| 26 | nd_speeder:1, nd_enforcer:1, nd_turret:1, nd_elite:3 | 0.5 | 16 | 1.8 | cluster | — |
+| 27 | nd_enforcer:2, nd_turret:1, nd_elite:3 | 0.4 | 16 | 1.9 | line | — |
+| 28 | nd_enforcer:1, nd_elite:4 | 0.4 | 18 | 1.9 | ring | — |
+| 29 | nd_enforcer:2, nd_elite:4 | 0.4 | 20 | 2.0 | cluster | nd_boss |
+
+**Key ranges for all stages:**
+- `spawnInterval`: 2.0s (intro) → 0.4s (endgame)
+- `maxSpawnCount`: 3 (intro) → 20 (endgame)
+- `hpMultiplier`: 1.0 (intro) → 2.0 (endgame)
+
 ---
 
 ## 4. WaveManager Refactor
@@ -235,15 +282,11 @@ Replace the current simple WaveManager with a data-driven version:
 // New API:
 export function getWaveEntry(stageId: string, elapsedTime: number): WaveEntry
 export function getSpawnPositions(pattern: SpawnPattern, playerPos: Vec3, count: number): Vec3[]
-export function shouldSpawnBoss(stageId: string, currentTime: number, previousTime: number): string | null
-// Returns boss definitionId or null
 ```
 
-`getWaveEntry` looks up the current minute in the stage's wave schedule.
+`getWaveEntry` looks up the current minute in the stage's wave schedule. Boss spawning is determined by checking `waveEntry.bossId` when the minute changes — no separate `shouldSpawnBoss` function needed.
 
 `getSpawnPositions` replaces the single `getSpawnPosition` function with pattern-aware multi-position generation.
-
-`shouldSpawnBoss` returns the boss ID from the wave entry for the current minute (if any), replacing the hardcoded array.
 
 The `SPAWN_INTERVAL` becomes per-wave (`waveEntry.spawnInterval`).
 
@@ -288,7 +331,7 @@ export interface EnemyProjectileInstance {
 }
 ```
 
-Enemy projectiles move in a straight line. If they hit the player (distance < 0.5), call `takeDamage`. Despawn after 3 seconds or leaving stage bounds.
+Enemy projectiles move in a straight line. If they hit the player (distance < 0.5), call `takeDamage`. Despawn after 3 seconds or leaving stage bounds. Max pool size: 100 enemy projectiles (separate from the 200 player projectile cap).
 
 Render as small colored spheres using a separate InstancedMesh.
 
@@ -358,9 +401,13 @@ The `enemyPrefix` maps to enemy IDs (e.g., `nd_drone`, `nd_boss`). The wave sche
 
 ### 8.1 Existing Enemy IDs
 
-The old enemy IDs (`drone`, `speeder`, `tank`, `sentinel`) become aliases for the Neon District enemies (`nd_drone`, `nd_speeder`, `nd_enforcer`, `nd_boss`). Keep both in `ENEMIES` for any code that references the old IDs.
+The old enemy IDs (`drone`, `speeder`, `tank`, `sentinel`) become aliases for the Neon District enemies (`nd_drone`, `nd_speeder`, `nd_enforcer`, `nd_boss`). Keep both in `ENEMIES` for any code that references the old IDs. Note: this is a stat rebalance — old enemies get updated stats (e.g., `sentinel` HP 500 → `nd_boss` HP 800). All existing tests referencing old enemy stats must be updated.
 
-### 8.2 Old WaveManager
+### 8.2 Known Issue: Stage-Specific Level Check
+
+The current `checkCondition` for `reach_level` checks `state.stats.bestLevel` globally, ignoring the `stageId` field. Stage unlock conditions like "Reach Level 20 in Neon District" won't correctly filter by stage. Fix: update `checkCondition` to check per-stage best level (stored in `perCharacterStats` or a new `perStageStats` field). Include this fix in this implementation.
+
+### 8.3 Old WaveManager
 
 Replace entirely. The old API (`getSpawnCount`, `getEnemyTypeForTime`, `getSpawnPosition`) is only used in `Enemies.tsx` and tests. Update both.
 
@@ -402,4 +449,4 @@ Replace entirely. Boss spawning moves into wave schedule data.
 - **Game Modes** — separate sub-project (Phase 4E)
 - **Difficulty/Curse modifiers** — separate sub-project (Phase 4F)
 - **Destructible stage objects** — future work
-- **Enemy projectile homing** — Orbital Station's Plasma Sentry fires homing shots, but this is simple tracking toward player position at fire time, not continuous homing
+- **Enemy projectile homing** — all ranged enemies fire aimed projectiles (straight line toward player position at fire time), not continuously tracking projectiles
