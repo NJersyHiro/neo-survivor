@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { getComputedStats } from '../hooks/useComputedStats';
 import { SoundManager } from '../game/SoundManager';
+import { getAugmentModifiers } from '../game/AugmentEffects';
+import { distance } from '../utils/math';
 
 const MAX_GEMS = 400;
 const MAGNET_RADIUS = 3.0;
@@ -36,7 +38,8 @@ export default function XPGemRenderer() {
     const gems = state.xpGems;
     const playerPos = state.player.position;
     const stats = getComputedStats();
-    const magnetRadius = MAGNET_RADIUS * (1 + stats.magnet / 100);
+    const augMods = getAugmentModifiers();
+    const magnetRadius = MAGNET_RADIUS * (1 + stats.magnet / 100) * augMods.magnetMultiplier;
 
     let totalXP = 0;
     const collectedIds: string[] = [];
@@ -66,6 +69,16 @@ export default function XPGemRenderer() {
     if (totalXP > 0) {
       SoundManager.pickupXP();
       state.addXP(totalXP);
+    }
+    // Data surge: XP gem pickup damages nearby enemies
+    if (collectedIds.length > 0 && augMods.hasDataSurge) {
+      const currentEnemies = useGameStore.getState().enemies;
+      for (const enemy of currentEnemies) {
+        const dist = distance(playerPos, enemy.position);
+        if (dist < 3) {
+          state.damageEnemy(enemy.id, 20);
+        }
+      }
     }
     for (const id of collectedIds) {
       state.removeXPGem(id);

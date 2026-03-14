@@ -23,6 +23,7 @@ import { SoundManager } from '../game/SoundManager';
 import { generateId } from '../utils/math';
 import { rollFloorItemDrop, BOSS_DROP_COUNT } from '../data/floorItems';
 import { ALL_AUGMENT_IDS, AUGMENT_OFFER_TIMES, MAX_AUGMENTS_PER_RUN } from '../data/augments';
+import { getAugmentModifiers } from '../game/AugmentEffects';
 
 export function xpForLevel(level: number): number {
   return Math.floor(10 * Math.pow(1.2, level - 1));
@@ -339,13 +340,29 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
+      // Second wind augment: 1% max HP regen per second
+      const augMods = getAugmentModifiers();
+      if (augMods.recoveryPerSecond > 0) {
+        const player = state.player;
+        const regenAmount = player.maxHp * augMods.recoveryPerSecond * delta;
+        if (player.hp < player.maxHp) {
+          const newHp = Math.min(player.maxHp, player.hp + regenAmount);
+          return {
+            elapsedTime: newTime,
+            player: { ...player, hp: newHp },
+            hpRecovered: state.hpRecovered + (newHp - player.hp),
+          };
+        }
+      }
+
       return { elapsedTime: newTime };
     }),
 
   addXP: (amount) =>
     set((state) => {
       const player = { ...state.player };
-      const xpAmount = state.hyperModeEnabled ? amount * 1.5 : amount;
+      const augMods = getAugmentModifiers();
+      const xpAmount = (state.hyperModeEnabled ? amount * 1.5 : amount) * augMods.xpMultiplier;
       player.xp += xpAmount;
 
       if (player.xp >= player.xpToNextLevel) {
@@ -367,7 +384,9 @@ export const useGameStore = create<GameState>()((set) => ({
         player.hp = 0;
         return { player, phase: 'gameover' as const, damageTaken: state.damageTaken + amount };
       }
-      const effectiveDamage = Math.max(0, amount - player.armor);
+      const augMods = getAugmentModifiers();
+      const totalArmor = player.armor + augMods.extraArmor;
+      const effectiveDamage = Math.max(0, Math.floor((amount - totalArmor) * augMods.damageTakenMultiplier));
       player.hp -= effectiveDamage;
 
       if (player.hp <= 0) {
@@ -449,10 +468,11 @@ export const useGameStore = create<GameState>()((set) => ({
     set((state) => {
       const shopUpgrades = useMetaStore.getState().upgrades;
       const stats = computePlayerStats(state.items, shopUpgrades);
+      const augMods = getAugmentModifiers();
 
       let finalDamage = damage;
       const isCrit = stats.critChance > 0 && Math.random() * 100 < stats.critChance;
-      if (isCrit) finalDamage *= 2;
+      if (isCrit) finalDamage *= augMods.critMultiplier;
 
       // Map enemies, applying damage with shield absorption
       const enemies = state.enemies.map((e) => {
@@ -509,6 +529,10 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
+      // Apply augment credit multiplier
+      if (augMods.creditMultiplier !== 1 && creditGain > 0) {
+        creditGain = Math.floor(creditGain * augMods.creditMultiplier);
+      }
       // Apply hyper mode credit multiplier
       if (state.hyperModeEnabled && creditGain > 0) {
         creditGain = Math.floor(creditGain * 1.5);
@@ -531,8 +555,9 @@ export const useGameStore = create<GameState>()((set) => ({
         }
       }
 
-      if (stats.lifesteal > 0 && finalDamage > 0) {
-        const healAmount = finalDamage * stats.lifesteal / 100;
+      const totalLifesteal = stats.lifesteal + augMods.extraLifesteal;
+      if (totalLifesteal > 0 && finalDamage > 0) {
+        const healAmount = finalDamage * totalLifesteal / 100;
         actualHeal = Math.min(healAmount, player.maxHp - player.hp);
         if (actualHeal > 0) {
           player = { ...player, hp: player.hp + actualHeal };
@@ -558,7 +583,7 @@ export const useGameStore = create<GameState>()((set) => ({
         if (def?.isReaper) continue;
         const dropCount = def?.isBoss ? BOSS_DROP_COUNT : 1;
         for (let i = 0; i < dropCount; i++) {
-          const drop = rollFloorItemDrop(stats.luck, !!def?.isBoss);
+          const drop = rollFloorItemDrop(stats.luck, !!def?.isBoss, augMods.dropRateMultiplier);
           if (drop) {
             newFloorItems.push({
               id: generateId(),
@@ -613,11 +638,29 @@ export const useGameStore = create<GameState>()((set) => ({
     set((state) => ({ chests: state.chests.filter((c) => c.id !== id) })),
 
   selectAugment: (id) =>
-    set((state) => ({
-      activeAugments: [...state.activeAugments, id],
-      augmentOptions: [],
-      phase: 'playing',
-    })),
+    set((state) => {
+      const newAugments = [...state.activeAugments, id];
+      const result: Partial<GameState> = {
+        activeAugments: newAugments,
+        augmentOptions: [],
+        phase: 'playing',
+      };
+      // Apply fortify: increase maxHp by 20%
+      if (id === 'fortify') {
+        const player = { ...state.player };
+        const hpBonus = Math.floor(player.maxHp * 0.2);
+        player.maxHp += hpBonus;
+        player.hp += hpBonus;
+        result.player = player;
+      }
+      // Apply shield_generator: +3 armor applied immediately
+      if (id === 'shield_generator') {
+        const player = result.player ? { ...result.player } : { ...state.player };
+        player.armor += 3;
+        result.player = player;
+      }
+      return result;
+    }),
 
   addFloorItem: (item) =>
     set((state) => ({ floorItems: [...state.floorItems, item] })),
@@ -676,9 +719,11 @@ export const useGameStore = create<GameState>()((set) => ({
   movePlayer: (dx, dz, delta) =>
     set((state) => {
       const player = { ...state.player };
+      const augMods = getAugmentModifiers();
+      const speed = player.speed * augMods.speedMultiplier;
       const position = { ...player.position };
-      position.x = Math.max(-24, Math.min(24, position.x + dx * player.speed * delta));
-      position.z = Math.max(-24, Math.min(24, position.z + dz * player.speed * delta));
+      position.x = Math.max(-24, Math.min(24, position.x + dx * speed * delta));
+      position.z = Math.max(-24, Math.min(24, position.z + dz * speed * delta));
       player.position = position;
       return { player };
     }),
@@ -688,7 +733,28 @@ export const useGameStore = create<GameState>()((set) => ({
       const player = { ...state.player };
       const actualHeal = Math.min(amount, player.maxHp - player.hp);
       player.hp = Math.min(player.hp + amount, player.maxHp);
-      return { player, hpRecovered: state.hpRecovered + Math.max(0, actualHeal) };
+      const result: Partial<GameState> = {
+        player,
+        hpRecovered: state.hpRecovered + Math.max(0, actualHeal),
+      };
+      // Nano heal: healing damages nearby enemies for 50% of heal amount
+      if (actualHeal > 0 && state.activeAugments.includes('nano_heal')) {
+        const dmg = Math.floor(actualHeal * 0.5);
+        if (dmg > 0) {
+          const enemies = state.enemies.map((e) => {
+            const dx = player.position.x - e.position.x;
+            const dz = player.position.z - e.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < 4) {
+              return { ...e, hp: e.hp - dmg };
+            }
+            return e;
+          });
+          result.enemies = enemies.filter((e) => e.hp > 0);
+          result.killCount = state.killCount + (state.enemies.length - result.enemies.length);
+        }
+      }
+      return result;
     }),
 
   tickRazorWire: (delta) =>

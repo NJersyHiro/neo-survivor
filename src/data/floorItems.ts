@@ -52,8 +52,8 @@ export const BASE_DROP_CHANCE = 1.5;
 /** Boss guaranteed drop count */
 export const BOSS_DROP_COUNT = 2;
 
-export function rollFloorItemDrop(luck: number, isBoss: boolean): FloorItemType | null {
-  const chance = BASE_DROP_CHANCE * (1 + luck / 100);
+export function rollFloorItemDrop(luck: number, isBoss: boolean, dropRateMultiplier = 1): FloorItemType | null {
+  const chance = BASE_DROP_CHANCE * (1 + luck / 100) * dropRateMultiplier;
   if (!isBoss && Math.random() * 100 >= chance) return null;
 
   const entries = Object.values(FLOOR_ITEMS);

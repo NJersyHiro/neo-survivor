@@ -9,6 +9,7 @@ import { getComputedStats } from '../hooks/useComputedStats';
 import { generateId, distance, directionTo } from '../utils/math';
 import type { ProjectileInstance } from '../types';
 import { SoundManager } from '../game/SoundManager';
+import { getAugmentModifiers } from '../game/AugmentEffects';
 
 const MAX_PROJECTILES = 200;
 const PROJECTILE_LIFETIME = 3.0;
@@ -29,6 +30,7 @@ export default function Projectiles() {
     const { weapons, player, enemies } = store;
     const cooldowns = cooldownsRef.current;
     const stats = getComputedStats();
+    const augMods = getAugmentModifiers();
 
     // --- Per-weapon fire logic ---
     for (const weapon of weapons) {
@@ -41,17 +43,18 @@ export default function Projectiles() {
 
       if (newCd > 0) continue;
 
-      // Reset cooldown
-      cooldowns.set(weapon.definitionId, getWeaponCooldown(weapon.definitionId, weapon.level) * (1 + stats.cooldown / 100));
+      // Reset cooldown (apply augment cooldown multiplier)
+      cooldowns.set(weapon.definitionId, getWeaponCooldown(weapon.definitionId, weapon.level) * (1 + stats.cooldown / 100) * augMods.cooldownMultiplier);
 
-      const damage = getWeaponDamage(weapon.definitionId, weapon.level, player.might + stats.might);
+      const baseDamage = getWeaponDamage(weapon.definitionId, weapon.level, player.might + stats.might);
+      const damage = Math.floor(baseDamage * augMods.mightMultiplier);
 
       if (def.category === 'melee') {
-        // Damage all enemies within area
+        // Damage all enemies within area (apply augment area multiplier)
         let meleeHitAny = false;
         for (const enemy of enemies) {
           const dist = distance(player.position, enemy.position);
-          if (dist <= def.area * (1 + stats.area / 100)) {
+          if (dist <= def.area * (1 + stats.area / 100) * augMods.areaMultiplier) {
             const enemyDef = ENEMIES[enemy.definitionId];
             const willDie = enemy.hp - damage <= 0;
             store.damageEnemy(enemy.id, damage);
@@ -63,14 +66,29 @@ export default function Projectiles() {
                 position: { ...enemy.position },
                 value: enemyDef.xpValue,
               });
-              // Boss drops chest
+              // Boss drops chest (treasure_hunter: 2 chests)
               if (enemyDef.isBoss) {
                 const chestType = store.elapsedTime < 120 ? 'bronze' : 'silver';
-                store.addChest({
-                  id: generateId(),
-                  position: { ...enemy.position },
-                  type: chestType,
-                });
+                const chestCount = augMods.hasTreasureHunter ? 2 : 1;
+                for (let c = 0; c < chestCount; c++) {
+                  store.addChest({
+                    id: generateId(),
+                    position: { x: enemy.position.x + (c - 0.5) * 1.5, y: 0, z: enemy.position.z },
+                    type: chestType,
+                  });
+                }
+              }
+              // Chain lightning: 25% chance to damage nearby enemy
+              if (augMods.hasChainLightning && Math.random() < 0.25) {
+                const currentEnemies = useGameStore.getState().enemies;
+                for (const nearby of currentEnemies) {
+                  if (nearby.id === enemy.id) continue;
+                  const chainDist = distance(enemy.position, nearby.position);
+                  if (chainDist < 3) {
+                    store.damageEnemy(nearby.id, Math.floor(damage * 0.5));
+                    break;
+                  }
+                }
               }
             }
           }
@@ -85,7 +103,7 @@ export default function Projectiles() {
 
         const dir = directionTo(player.position, nearest.position);
         const baseAngle = Math.atan2(dir.z, dir.x);
-        const amount = def.amount;
+        const amount = def.amount + (def.category === 'multishot' ? augMods.extraAmount : 0);
 
         for (let i = 0; i < amount; i++) {
           let angle = baseAngle;
@@ -103,9 +121,9 @@ export default function Projectiles() {
             position: { ...player.position },
             velocity: { x: vx, y: 0, z: vz },
             damage,
-            pierce: def.pierce,
+            pierce: def.pierce + augMods.extraPierce,
             pierceCount: 0,
-            area: def.area * (1 + stats.area / 100),
+            area: def.area * (1 + stats.area / 100) * augMods.areaMultiplier,
             lifetime: PROJECTILE_LIFETIME,
             age: 0,
           };
@@ -144,14 +162,17 @@ export default function Projectiles() {
               position: { ...enemy.position },
               value: enemyDef.xpValue,
             });
-            // Boss drops chest
+            // Boss drops chest (treasure_hunter: 2 chests)
             if (enemyDef.isBoss) {
               const chestType = store.elapsedTime < 120 ? 'bronze' : 'silver';
-              store.addChest({
-                id: generateId(),
-                position: { ...enemy.position },
-                type: chestType,
-              });
+              const chestCount = augMods.hasTreasureHunter ? 2 : 1;
+              for (let c = 0; c < chestCount; c++) {
+                store.addChest({
+                  id: generateId(),
+                  position: { x: enemy.position.x + (c - 0.5) * 1.5, y: 0, z: enemy.position.z },
+                  type: chestType,
+                });
+              }
             }
           } else {
             SoundManager.enemyHit();

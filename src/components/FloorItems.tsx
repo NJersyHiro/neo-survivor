@@ -6,6 +6,7 @@ import { getComputedStats } from '../hooks/useComputedStats';
 import { FLOOR_ITEMS } from '../data/floorItems';
 import { ENEMIES } from '../data/enemies';
 import { SoundManager } from '../game/SoundManager';
+import { getAugmentModifiers } from '../game/AugmentEffects';
 import type { FloorItemType } from '../types';
 
 const MAX_FLOOR_ITEMS = 50;
@@ -46,7 +47,8 @@ export default function FloorItemRenderer() {
     const items = state.floorItems;
     const playerPos = state.player.position;
     const stats = getComputedStats();
-    const magnetRadius = MAGNET_RADIUS * (1 + stats.magnet / 100);
+    const augMods = getAugmentModifiers();
+    const magnetRadius = MAGNET_RADIUS * (1 + stats.magnet / 100) * augMods.magnetMultiplier;
 
     const collectedIds: string[] = [];
     let totalXP = 0;
