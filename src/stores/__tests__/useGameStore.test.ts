@@ -24,7 +24,7 @@ describe('useGameStore', () => {
     expect(state.player.hp).toBe(100);
     expect(state.player.maxHp).toBe(100);
     expect(state.player.level).toBe(1);
-    expect(state.player.speed).toBe(5);
+    expect(state.player.speed).toBe(3.3);
     expect(state.weapons).toEqual([]);
     expect(state.enemies).toEqual([]);
     expect(state.elapsedTime).toBe(0);
@@ -53,7 +53,8 @@ describe('useGameStore', () => {
 
   it('takeDamage kills player at 0 HP', () => {
     useGameStore.getState().startRun();
-    useGameStore.getState().takeDamage(100);
+    const startHp = useGameStore.getState().player.hp;
+    useGameStore.getState().takeDamage(startHp);
     const state = useGameStore.getState();
     expect(state.player.hp).toBe(0);
     expect(state.phase).toBe('gameover');
@@ -61,9 +62,10 @@ describe('useGameStore', () => {
 
   it('takeDamage reduces HP considering armor', () => {
     useGameStore.getState().startRun();
+    const startHp = useGameStore.getState().player.hp;
     useGameStore.getState().takeDamage(10);
     const state = useGameStore.getState();
-    expect(state.player.hp).toBe(90);
+    expect(state.player.hp).toBe(startHp - 10);
   });
 
   it('spawnEnemy and removeEnemy work', () => {
@@ -280,8 +282,11 @@ describe('useGameStore', () => {
     });
     useGameStore.getState().startRun();
     const state = useGameStore.getState();
-    expect(state.player.maxHp).toBe(134);
-    expect(state.player.hp).toBe(134);
+    // Tank: baseMaxHp = 130 + 2*2 = 134
+    // stats.maxHp includes character baseStats.maxHp (130) = 130%
+    // effectiveMaxHp = 134 * (1 + 130/100) = 308 (rounded)
+    expect(state.player.maxHp).toBe(308);
+    expect(state.player.hp).toBe(308);
   });
 
   it('startRun initializes per-run counters to zero', () => {

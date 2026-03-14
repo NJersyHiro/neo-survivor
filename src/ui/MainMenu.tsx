@@ -288,6 +288,21 @@ export default function MainMenu() {
             >
               +10000 CR
             </button>
+            <button
+              onClick={() => {
+                SoundManager.buttonClick();
+                if (confirm('Reset all progress?')) {
+                  useMetaStore.getState().resetAll();
+                }
+              }}
+              style={{
+                background: 'transparent', color: '#ff0000', border: '1px solid #ff0000',
+                borderRadius: 4, padding: '6px 12px', fontSize: 11,
+                fontFamily: "'Courier New', monospace", cursor: 'pointer',
+              }}
+            >
+              RESET ALL
+            </button>
           </div>
         </div>
       )}

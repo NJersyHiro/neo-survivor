@@ -1,7 +1,7 @@
 import type { EnemyDefinition } from '../types';
 
 export const ENEMIES: Record<string, EnemyDefinition> = {
-  // === Neon District (Stage 1) — No special mechanics ===
+  // === Neon District (Stage 1) — Basic enemies, no special mechanics ===
   nd_drone: {
     id: 'nd_drone', name: 'Street Drone', hp: 20, damage: 5, speed: 2.5,
     xpValue: 1, color: '#ff3366', emissive: '#ff1144', scale: 0.5,
@@ -30,98 +30,98 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     isBoss: true, bossScale: 2.5,
   },
 
-  // === Data Mines (Stage 2) — Enemies gain abilities ===
+  // === Data Mines (Stage 2) — 2x HP, abilities: teleport, shield, ranged ===
   dm_crawler: {
-    id: 'dm_crawler', name: 'Crawler', hp: 30, damage: 7, speed: 2.8,
-    xpValue: 2, color: '#44ff44', emissive: '#22cc22', scale: 0.5,
+    id: 'dm_crawler', name: 'Crawler', hp: 60, damage: 10, speed: 2.8,
+    xpValue: 3, color: '#44ff44', emissive: '#22cc22', scale: 0.55,
   },
   dm_glitch: {
-    id: 'dm_glitch', name: 'Glitch', hp: 18, damage: 5, speed: 4.5,
-    xpValue: 3, color: '#00ffff', emissive: '#00cccc', scale: 0.4,
+    id: 'dm_glitch', name: 'Glitch', hp: 35, damage: 8, speed: 4.5,
+    xpValue: 5, color: '#00ffff', emissive: '#00cccc', scale: 0.4,
     behavior: 'teleport_chase', teleportInterval: 4,
   },
   dm_golem: {
-    id: 'dm_golem', name: 'Data Golem', hp: 150, damage: 12, speed: 1.0,
-    xpValue: 8, color: '#666699', emissive: '#444477', scale: 0.9,
-    shieldHp: 50, shieldRegenDelay: 3,
+    id: 'dm_golem', name: 'Data Golem', hp: 300, damage: 18, speed: 1.0,
+    xpValue: 12, color: '#666699', emissive: '#444477', scale: 0.9,
+    shieldHp: 80, shieldRegenDelay: 3,
   },
   dm_laser: {
-    id: 'dm_laser', name: 'Laser Node', hp: 45, damage: 4, speed: 0.8,
-    xpValue: 5, color: '#ff4444', emissive: '#cc2222', scale: 0.55,
-    behavior: 'ranged', projectileDamage: 12, projectileSpeed: 10,
+    id: 'dm_laser', name: 'Laser Node', hp: 80, damage: 6, speed: 0.8,
+    xpValue: 7, color: '#ff4444', emissive: '#cc2222', scale: 0.55,
+    behavior: 'ranged', projectileDamage: 15, projectileSpeed: 10,
     projectileInterval: 1.8, attackRange: 12,
   },
   dm_virus: {
-    id: 'dm_virus', name: 'Virus Elite', hp: 180, damage: 15, speed: 2.2,
-    xpValue: 12, color: '#88ff00', emissive: '#66cc00', scale: 0.7,
+    id: 'dm_virus', name: 'Virus Elite', hp: 350, damage: 22, speed: 2.2,
+    xpValue: 18, color: '#88ff00', emissive: '#66cc00', scale: 0.75,
   },
   dm_boss: {
-    id: 'dm_boss', name: 'Data Worm', hp: 1500, damage: 20, speed: 1.8,
-    xpValue: 80, color: '#00ff00', emissive: '#00cc00', scale: 1.5,
+    id: 'dm_boss', name: 'Data Worm', hp: 3000, damage: 30, speed: 1.8,
+    xpValue: 120, color: '#00ff00', emissive: '#00cc00', scale: 1.5,
     isBoss: true, bossScale: 3.0,
   },
 
-  // === Orbital Station (Stage 3) — Faster, deadlier ===
+  // === Orbital Station (Stage 3) — 4x HP, faster, explode, aura buff ===
   os_probe: {
-    id: 'os_probe', name: 'Probe', hp: 40, damage: 9, speed: 3.2,
-    xpValue: 3, color: '#aaaaff', emissive: '#8888cc', scale: 0.45,
+    id: 'os_probe', name: 'Probe', hp: 120, damage: 15, speed: 3.5,
+    xpValue: 6, color: '#aaaaff', emissive: '#8888cc', scale: 0.5,
   },
   os_interceptor: {
-    id: 'os_interceptor', name: 'Interceptor', hp: 25, damage: 7, speed: 5.5,
-    xpValue: 4, color: '#ff88ff', emissive: '#cc66cc', scale: 0.4,
+    id: 'os_interceptor', name: 'Interceptor', hp: 70, damage: 12, speed: 6.0,
+    xpValue: 8, color: '#ff88ff', emissive: '#cc66cc', scale: 0.4,
   },
   os_mech: {
-    id: 'os_mech', name: 'Heavy Mech', hp: 250, damage: 15, speed: 1.0,
-    xpValue: 12, color: '#888888', emissive: '#666666', scale: 1.0,
-    onDeath: 'explode', explosionDamage: 20, explosionRadius: 2.0,
+    id: 'os_mech', name: 'Heavy Mech', hp: 600, damage: 25, speed: 1.0,
+    xpValue: 20, color: '#888888', emissive: '#666666', scale: 1.0,
+    onDeath: 'explode', explosionDamage: 30, explosionRadius: 2.5,
   },
   os_sentry: {
-    id: 'os_sentry', name: 'Plasma Sentry', hp: 60, damage: 5, speed: 0.6,
-    xpValue: 7, color: '#ff6644', emissive: '#cc4422', scale: 0.6,
-    behavior: 'ranged', projectileDamage: 15, projectileSpeed: 12,
+    id: 'os_sentry', name: 'Plasma Sentry', hp: 150, damage: 8, speed: 0.6,
+    xpValue: 12, color: '#ff6644', emissive: '#cc4422', scale: 0.6,
+    behavior: 'ranged', projectileDamage: 20, projectileSpeed: 12,
     projectileInterval: 1.5, attackRange: 14,
   },
   os_commander: {
-    id: 'os_commander', name: 'Commander', hp: 300, damage: 18, speed: 2.5,
-    xpValue: 15, color: '#ffdd00', emissive: '#ccaa00', scale: 0.8,
-    aura: 'buff_damage', auraValue: 0.25, auraRadius: 3,
+    id: 'os_commander', name: 'Commander', hp: 700, damage: 28, speed: 2.5,
+    xpValue: 25, color: '#ffdd00', emissive: '#ccaa00', scale: 0.85,
+    aura: 'buff_damage', auraValue: 0.3, auraRadius: 3.5,
   },
   os_boss: {
-    id: 'os_boss', name: 'Station Core', hp: 3000, damage: 25, speed: 1.2,
-    xpValue: 120, color: '#ffffff', emissive: '#aaaaaa', scale: 1.8,
+    id: 'os_boss', name: 'Station Core', hp: 8000, damage: 40, speed: 1.2,
+    xpValue: 200, color: '#ffffff', emissive: '#aaaaaa', scale: 1.8,
     isBoss: true, bossScale: 3.5,
   },
 
-  // === Core Nexus (Stage 4) — Maximum danger ===
+  // === Core Nexus (Stage 4) — 8x HP, all abilities, maximum danger ===
   cn_fragment: {
-    id: 'cn_fragment', name: 'Fragment', hp: 50, damage: 12, speed: 3.0,
-    xpValue: 4, color: '#ff2222', emissive: '#cc0000', scale: 0.45,
-    aura: 'heal_allies', auraValue: 2, auraRadius: 3,
+    id: 'cn_fragment', name: 'Fragment', hp: 200, damage: 20, speed: 3.2,
+    xpValue: 10, color: '#ff2222', emissive: '#cc0000', scale: 0.5,
+    aura: 'heal_allies', auraValue: 5, auraRadius: 3.5,
   },
   cn_phaser: {
-    id: 'cn_phaser', name: 'Phase Runner', hp: 35, damage: 10, speed: 6.0,
-    xpValue: 6, color: '#22ffff', emissive: '#00cccc', scale: 0.4,
-    behavior: 'teleport_chase', teleportInterval: 3,
+    id: 'cn_phaser', name: 'Phase Runner', hp: 120, damage: 16, speed: 6.5,
+    xpValue: 12, color: '#22ffff', emissive: '#00cccc', scale: 0.42,
+    behavior: 'teleport_chase', teleportInterval: 2.5,
   },
   cn_firewall: {
-    id: 'cn_firewall', name: 'Firewall', hp: 400, damage: 20, speed: 0.8,
-    xpValue: 15, color: '#ff4400', emissive: '#cc3300', scale: 1.1,
-    shieldHp: 100, shieldRegenDelay: 2,
+    id: 'cn_firewall', name: 'Firewall', hp: 1200, damage: 35, speed: 0.8,
+    xpValue: 30, color: '#ff4400', emissive: '#cc3300', scale: 1.2,
+    shieldHp: 200, shieldRegenDelay: 2,
   },
   cn_sniper: {
-    id: 'cn_sniper', name: 'Code Sniper', hp: 80, damage: 8, speed: 0.5,
-    xpValue: 10, color: '#4444ff', emissive: '#2222cc', scale: 0.55,
-    behavior: 'ranged', projectileDamage: 20, projectileSpeed: 14,
-    projectileInterval: 1.2, attackRange: 16,
+    id: 'cn_sniper', name: 'Code Sniper', hp: 250, damage: 12, speed: 0.5,
+    xpValue: 18, color: '#4444ff', emissive: '#2222cc', scale: 0.6,
+    behavior: 'ranged', projectileDamage: 30, projectileSpeed: 16,
+    projectileInterval: 1.0, attackRange: 18,
   },
   cn_kernel: {
-    id: 'cn_kernel', name: 'Kernel Elite', hp: 500, damage: 25, speed: 2.0,
-    xpValue: 20, color: '#ffff00', emissive: '#cccc00', scale: 0.85,
-    aura: 'buff_damage', auraValue: 0.40, auraRadius: 3,
+    id: 'cn_kernel', name: 'Kernel Elite', hp: 1500, damage: 40, speed: 2.2,
+    xpValue: 35, color: '#ffff00', emissive: '#cccc00', scale: 0.9,
+    aura: 'buff_damage', auraValue: 0.5, auraRadius: 4,
   },
   cn_boss: {
-    id: 'cn_boss', name: 'Nexus Guardian', hp: 6000, damage: 30, speed: 1.5,
-    xpValue: 200, color: '#ff0044', emissive: '#cc0033', scale: 2.0,
+    id: 'cn_boss', name: 'Nexus Guardian', hp: 15000, damage: 50, speed: 1.5,
+    xpValue: 400, color: '#ff0044', emissive: '#cc0033', scale: 2.0,
     isBoss: true, bossScale: 4.0,
   },
 

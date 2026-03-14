@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../stores/useGameStore';
 import { WEAPONS, EVOLVED_WEAPON_IDS } from '../data/weapons';
 import { ITEMS } from '../data/items';
-import { getComputedStats } from '../hooks/useComputedStats';
+
 import { SoundManager } from '../game/SoundManager';
 
 function formatTime(seconds: number): string {
@@ -56,11 +56,9 @@ export default function HUD() {
 
   if (phase !== 'playing' && phase !== 'levelup') return null;
 
-  const stats = getComputedStats();
-  const effectiveMaxHp = maxHp * (1 + stats.maxHp / 100);
-  const hpPercent = Math.min(100, Math.max(0, hp / effectiveMaxHp) * 100);
+  const hpPercent = Math.min(100, Math.max(0, hp / maxHp) * 100);
   const xpPercent = Math.max(0, xp / xpToNextLevel) * 100;
-  const hpLow = hp / effectiveMaxHp < 0.3;
+  const hpLow = hp / maxHp < 0.3;
 
   return (
     <div
@@ -78,7 +76,7 @@ export default function HUD() {
       {/* Top-left: HP + Level */}
       <div style={{ position: 'absolute', top: 'calc(var(--sat) + 16px)', left: 16 }}>
         <div style={{ color: '#ff3366', fontSize: 14, marginBottom: 4 }}>
-          HP: {Math.ceil(hp)} / {Math.round(effectiveMaxHp)}
+          HP: {Math.ceil(hp)} / {Math.round(maxHp)}
         </div>
         <div
           style={{

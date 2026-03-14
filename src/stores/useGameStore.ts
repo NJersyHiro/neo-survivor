@@ -30,7 +30,7 @@ function createInitialPlayer(): PlayerState {
     position: { x: 0, y: 0, z: 0 },
     hp: 100,
     maxHp: 100,
-    speed: 5,
+    speed: 3.3,
     might: 1,
     armor: 0,
     xp: 0,
@@ -242,11 +242,13 @@ export const useGameStore = create<GameState>()((set) => ({
     const characterLevel = meta.characterLevels[characterId] ?? 0;
     const baseMaxHp = (characterDef?.baseStats.maxHp ?? 100) + characterLevel * 2;
     const startingWeaponId = characterDef?.startingWeaponId ?? STARTING_WEAPON_ID;
-    // Compute effective max HP including shop upgrades so player starts at full HP
-    // Pass empty items and no character stats (character maxHp is already in baseMaxHp)
-    const startStats = computePlayerStats([], meta.upgrades);
+    // HUD computes: maxHp * (1 + getComputedStats().maxHp / 100)
+    // getComputedStats includes character baseStats, characterLevel, items, and shop upgrades
+    // At start, items are empty, so only shop + character contribute
+    // We store baseMaxHp in player.maxHp, and HUD applies the multiplier
+    // So hp should equal what HUD will show as effective max
+    const startStats = computePlayerStats([], meta.upgrades, characterDef?.baseStats, characterLevel);
     const effectiveMaxHp = Math.round(baseMaxHp * (1 + startStats.maxHp / 100));
-
     set({
       phase: 'playing',
       elapsedTime: 0,
@@ -254,7 +256,7 @@ export const useGameStore = create<GameState>()((set) => ({
       player: {
         ...createInitialPlayer(),
         hp: effectiveMaxHp,
-        maxHp: baseMaxHp,
+        maxHp: effectiveMaxHp,
       },
       weapons: [{ definitionId: startingWeaponId, level: 1 }],
       items: [],
@@ -323,10 +325,7 @@ export const useGameStore = create<GameState>()((set) => ({
 
       if (player.hp <= 0) {
         if (state.reviveCount > 0) {
-          const shopUpgrades = useMetaStore.getState().upgrades;
-          const stats = computePlayerStats(state.items, shopUpgrades);
-          const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
-          player.hp = Math.floor(effectiveMaxHp * 0.3);
+          player.hp = Math.floor(player.maxHp * 0.3);
           return { player, reviveCount: state.reviveCount - 1, damageTaken: state.damageTaken + effectiveDamage };
         }
         player.hp = 0;
@@ -487,8 +486,7 @@ export const useGameStore = create<GameState>()((set) => ({
 
       if (stats.lifesteal > 0 && finalDamage > 0) {
         const healAmount = finalDamage * stats.lifesteal / 100;
-        const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
-        actualHeal = Math.min(healAmount, effectiveMaxHp - player.hp);
+        actualHeal = Math.min(healAmount, player.maxHp - player.hp);
         if (actualHeal > 0) {
           player = { ...player, hp: player.hp + actualHeal };
         }
@@ -605,11 +603,8 @@ export const useGameStore = create<GameState>()((set) => ({
   healPlayer: (amount) =>
     set((state) => {
       const player = { ...state.player };
-      const shopUpgrades = useMetaStore.getState().upgrades;
-      const stats = computePlayerStats(state.items, shopUpgrades);
-      const effectiveMaxHp = player.maxHp * (1 + stats.maxHp / 100);
-      const actualHeal = Math.min(amount, effectiveMaxHp - player.hp);
-      player.hp = Math.min(player.hp + amount, effectiveMaxHp);
+      const actualHeal = Math.min(amount, player.maxHp - player.hp);
+      player.hp = Math.min(player.hp + amount, player.maxHp);
       return { player, hpRecovered: state.hpRecovered + Math.max(0, actualHeal) };
     }),
 
