@@ -30,6 +30,7 @@ export interface SaveData {
   perCharacterStats: Record<string, { bestTime: number }>;
   perWeaponStats: Record<string, { maxLevel: number }>;
   perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
+  encounteredEnemyIds: string[];
 }
 
 function migrateV1ToV2(data: Record<string, unknown>): SaveData {
@@ -67,6 +68,7 @@ function migrateV1ToV2(data: Record<string, unknown>): SaveData {
     perCharacterStats: {},
     perWeaponStats: {},
     perStageStats: {},
+    encounteredEnemyIds: [],
   };
 }
 

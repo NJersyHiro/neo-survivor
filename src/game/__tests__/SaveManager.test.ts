@@ -125,6 +125,7 @@ describe('SaveManager', () => {
       perCharacterStats: {},
       perWeaponStats: {},
       perStageStats: {},
+      encounteredEnemyIds: [],
     };
     await SaveManager.save(saveData);
     const loaded = await SaveManager.load();

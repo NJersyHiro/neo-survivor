@@ -35,6 +35,11 @@ export default function ShopScreen() {
           const cost = isMaxed ? 0 : getUpgradeCost(id, level + 1);
           const canAfford = credits >= cost;
 
+          const handlePurchase = () => {
+            SoundManager.buttonClick();
+            useMetaStore.getState().purchaseUpgrade(id);
+          };
+
           return (
             <div key={id} style={{
               background: 'rgba(0, 0, 0, 0.6)',
@@ -60,16 +65,19 @@ export default function ShopScreen() {
                 </div>
               ) : (
                 <button
-                  onClick={() => { SoundManager.buttonClick(); useMetaStore.getState().purchaseUpgrade(id); }}
+                  onTouchEnd={(e) => { e.preventDefault(); if (canAfford) handlePurchase(); }}
+                  onClick={() => { if (canAfford) handlePurchase(); }}
                   disabled={!canAfford}
                   style={{
                     background: canAfford ? '#00ffff' : 'transparent',
                     color: canAfford ? '#000' : '#ff4444',
                     border: `1px solid ${canAfford ? '#00ffff' : '#ff4444'}`,
-                    borderRadius: 4, padding: '6px 0', fontSize: 13,
+                    borderRadius: 4, padding: '10px 8px', fontSize: 13,
                     fontWeight: 'bold', fontFamily: "'Courier New', monospace",
                     cursor: canAfford ? 'pointer' : 'default',
                     opacity: canAfford ? 1 : 0.5,
+                    touchAction: 'manipulation',
+                    minHeight: 44, width: '100%',
                   }}
                 >
                   {cost} CR
@@ -99,6 +107,11 @@ export default function ShopScreen() {
           const cost = isMaxed ? 0 : getCharacterUpgradeCost(level + 1);
           const canAfford = credits >= cost;
 
+          const handleUpgrade = () => {
+            SoundManager.buttonClick();
+            useMetaStore.getState().upgradeCharacter(id);
+          };
+
           return (
             <div key={id} style={{
               background: 'rgba(0, 0, 0, 0.6)',
@@ -109,8 +122,11 @@ export default function ShopScreen() {
               <div style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
                 {def.name}
               </div>
-              <div style={{ color: '#888', fontSize: 11, flex: 1 }}>
+              <div style={{ color: '#888', fontSize: 11 }}>
                 {def.description}
+              </div>
+              <div style={{ color: '#aaa', fontSize: 10 }}>
+                +Might, +Speed per Lv
               </div>
               <div style={{ color: '#00ff88', fontSize: 12 }}>
                 Lv {level}/{MAX_CHARACTER_LEVEL}
@@ -124,16 +140,19 @@ export default function ShopScreen() {
                 </div>
               ) : (
                 <button
-                  onClick={() => { SoundManager.buttonClick(); useMetaStore.getState().upgradeCharacter(id); }}
+                  onTouchEnd={(e) => { e.preventDefault(); if (canAfford) handleUpgrade(); }}
+                  onClick={() => { if (canAfford) handleUpgrade(); }}
                   disabled={!canAfford}
                   style={{
                     background: canAfford ? '#ff88ff' : 'transparent',
                     color: canAfford ? '#000' : '#ff4444',
                     border: `1px solid ${canAfford ? '#ff88ff' : '#ff4444'}`,
-                    borderRadius: 4, padding: '6px 0', fontSize: 13,
+                    borderRadius: 4, padding: '10px 8px', fontSize: 13,
                     fontWeight: 'bold', fontFamily: "'Courier New', monospace",
                     cursor: canAfford ? 'pointer' : 'default',
                     opacity: canAfford ? 1 : 0.5,
+                    touchAction: 'manipulation',
+                    minHeight: 44, width: '100%',
                   }}
                 >
                   {cost} CR

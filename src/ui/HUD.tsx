@@ -54,7 +54,7 @@ export default function HUD() {
     prevEvolvedIdsRef.current = currentEvolvedIds;
   }, [weapons]);
 
-  if (phase !== 'playing' && phase !== 'levelup') return null;
+  if (phase !== 'playing' && phase !== 'levelup' && phase !== 'paused') return null;
 
   const hpPercent = Math.min(100, Math.max(0, hp / maxHp) * 100);
   const xpPercent = Math.max(0, xp / xpToNextLevel) * 100;
@@ -150,15 +150,21 @@ export default function HUD() {
           KILLS: {killCount}
         </div>
         <button
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            SoundManager.buttonClick();
+            useGameStore.getState().setPhase('paused');
+          }}
           onClick={() => {
             SoundManager.buttonClick();
-            useGameStore.getState().reset();
+            useGameStore.getState().setPhase('paused');
           }}
           style={{
             pointerEvents: 'auto',
+            touchAction: 'manipulation',
             background: 'rgba(0, 0, 0, 0.6)',
             color: '#888', border: '1px solid #444',
-            borderRadius: 4, padding: '4px 10px', fontSize: 11,
+            borderRadius: 4, padding: '8px 14px', fontSize: 13,
             fontWeight: 'bold', fontFamily: "'Courier New', monospace",
             cursor: 'pointer',
           }}

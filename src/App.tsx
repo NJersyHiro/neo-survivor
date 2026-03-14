@@ -11,6 +11,7 @@ import GameLoop from './components/GameLoop';
 import PostProcessing from './components/PostProcessing';
 import HUD from './ui/HUD';
 import LevelUpScreen from './ui/LevelUpScreen';
+import PauseScreen from './ui/PauseScreen';
 import ResultsScreen from './ui/ResultsScreen';
 import MainMenu from './ui/MainMenu';
 
@@ -38,12 +39,13 @@ export default function App() {
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
         gl={{ antialias: true, alpha: false }}
-        style={{ background: '#0a0a0f' }}
+        style={{ background: '#0a0a0f', touchAction: 'none' }}
       >
         <GameScene />
       </Canvas>
       <HUD />
       <LevelUpScreen />
+      <PauseScreen />
       <ResultsScreen />
       <MainMenu />
     </div>

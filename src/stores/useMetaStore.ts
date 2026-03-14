@@ -38,6 +38,7 @@ interface MetaState {
   perCharacterStats: Record<string, { bestTime: number }>;
   perWeaponStats: Record<string, { maxLevel: number }>;
   perStageStats: Record<string, { bestLevel: number; bestTime: number }>;
+  encounteredEnemyIds: string[];
   hyperModeActive: boolean;
 
   load: () => Promise<void>;
@@ -64,6 +65,7 @@ interface MetaState {
   selectStage: (id: string) => void;
   unlockHyperMode: (stageId: string) => void;
   setHyperModeActive: (active: boolean) => void;
+  addEncounteredEnemy: (enemyId: string) => void;
   resetAll: () => void;
 }
 
@@ -80,7 +82,7 @@ function createDefaultState() {
     unlockedIds: ['kai'],
     selectedCharacterId: 'kai',
     characterLevels: {} as Record<string, number>,
-    unlockedWeaponIds: ['plasma_bolt'],
+    unlockedWeaponIds: ['plasma_bolt', 'neon_whip', 'cyber_shuriken'],
     unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
     unlockedStageIds: ['neon_district'],
     hyperModeStageIds: [] as string[],
@@ -88,8 +90,18 @@ function createDefaultState() {
     perCharacterStats: {} as Record<string, { bestTime: number }>,
     perWeaponStats: {} as Record<string, { maxLevel: number }>,
     perStageStats: {} as Record<string, { bestLevel: number; bestTime: number }>,
+    encounteredEnemyIds: [] as string[],
     hyperModeActive: false,
   };
+}
+
+function ensureDefaults(existing: string[] | undefined, defaults: string[]): string[] {
+  if (!existing) return defaults;
+  const merged = [...existing];
+  for (const id of defaults) {
+    if (!merged.includes(id)) merged.push(id);
+  }
+  return merged;
 }
 
 function stateToSaveData(state: MetaState): SaveData {
@@ -109,6 +121,7 @@ function stateToSaveData(state: MetaState): SaveData {
     perCharacterStats: { ...state.perCharacterStats },
     perWeaponStats: { ...state.perWeaponStats },
     perStageStats: { ...state.perStageStats },
+    encounteredEnemyIds: [...state.encounteredEnemyIds],
   };
 }
 
@@ -166,7 +179,7 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         unlockedIds: data.unlockedIds.length > 0 ? data.unlockedIds : ['kai'],
         selectedCharacterId: data.selectedCharacterId ?? 'kai',
         characterLevels: data.characterLevels ?? {},
-        unlockedWeaponIds: data.unlockedWeaponIds ?? ['plasma_bolt'],
+        unlockedWeaponIds: ensureDefaults(data.unlockedWeaponIds, ['plasma_bolt', 'neon_whip', 'cyber_shuriken']),
         unlockedItemIds: data.unlockedItemIds ?? ['energy_cell', 'shield_matrix', 'magnet_implant'],
         unlockedStageIds: data.unlockedStageIds ?? ['neon_district'],
         hyperModeStageIds: data.hyperModeStageIds ?? [],
@@ -174,6 +187,7 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
         perCharacterStats: data.perCharacterStats ?? {},
         perWeaponStats: data.perWeaponStats ?? {},
         perStageStats: data.perStageStats ?? {},
+        encounteredEnemyIds: data.encounteredEnemyIds ?? [],
       });
     }
   },
@@ -383,6 +397,13 @@ export const useMetaStore = create<MetaState>()((set, get) => ({
   },
 
   setHyperModeActive: (active) => set({ hyperModeActive: active }),
+
+  addEncounteredEnemy: (enemyId) => {
+    const state = get();
+    if (state.encounteredEnemyIds.includes(enemyId)) return;
+    set({ encounteredEnemyIds: [...state.encounteredEnemyIds, enemyId] });
+    void SaveManager.save(stateToSaveData(get()));
+  },
 
   resetAll: () => {
     set(createDefaultState());

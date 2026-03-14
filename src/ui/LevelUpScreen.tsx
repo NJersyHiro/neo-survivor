@@ -86,7 +86,8 @@ function OptionCard({
 
   return (
     <div
-      style={cardStyle}
+      style={{ ...cardStyle, touchAction: 'manipulation' }}
+      onTouchEnd={(e) => { e.preventDefault(); onClick(); }}
       onClick={onClick}
       onMouseEnter={(e) => {
         const hoverColor = banishMode ? '#ff0044' : '#ff00ff';
@@ -218,7 +219,8 @@ export default function LevelUpScreen() {
       </div>
       <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
         <button
-          onClick={() => useGameStore.getState().reroll()}
+          onTouchEnd={(e) => { e.preventDefault(); if (rerollCount > 0) useGameStore.getState().reroll(); }}
+          onClick={() => { if (rerollCount > 0) useGameStore.getState().reroll(); }}
           disabled={rerollCount <= 0}
           style={{
             background: 'transparent',
@@ -230,12 +232,14 @@ export default function LevelUpScreen() {
             fontFamily,
             fontSize: '14px',
             minHeight: '44px',
+            touchAction: 'manipulation',
           }}
         >
           REROLL ({rerollCount})
         </button>
         <button
-          onClick={() => useGameStore.getState().skip()}
+          onTouchEnd={(e) => { e.preventDefault(); if (skipCount > 0) useGameStore.getState().skip(); }}
+          onClick={() => { if (skipCount > 0) useGameStore.getState().skip(); }}
           disabled={skipCount <= 0}
           style={{
             background: 'transparent',
@@ -247,14 +251,14 @@ export default function LevelUpScreen() {
             fontFamily,
             fontSize: '14px',
             minHeight: '44px',
+            touchAction: 'manipulation',
           }}
         >
           SKIP ({skipCount})
         </button>
         <button
-          onClick={() => {
-            setBanishMode(!banishMode);
-          }}
+          onTouchEnd={(e) => { e.preventDefault(); if (banishCount > 0) setBanishMode(!banishMode); }}
+          onClick={() => { if (banishCount > 0) setBanishMode(!banishMode); }}
           disabled={banishCount <= 0}
           style={{
             background: banishMode ? '#ff0044' : 'transparent',
@@ -266,6 +270,7 @@ export default function LevelUpScreen() {
             fontFamily,
             fontSize: '14px',
             minHeight: '44px',
+            touchAction: 'manipulation',
           }}
         >
           BANISH ({banishCount})

@@ -9,6 +9,7 @@ describe('useGameStore', () => {
       selectedCharacterId: 'kai',
       unlockedIds: ['kai'],
       characterLevels: {},
+      upgrades: {},
       unlockedWeaponIds: ['plasma_bolt'],
       unlockedItemIds: ['energy_cell', 'shield_matrix', 'magnet_implant'],
     });
@@ -146,9 +147,9 @@ describe('useGameStore', () => {
     useGameStore.getState().startRun();
     const state = useGameStore.getState();
     expect(state.items).toEqual([]);
-    expect(state.rerollCount).toBe(3);
-    expect(state.skipCount).toBe(3);
-    expect(state.banishCount).toBe(3);
+    expect(state.rerollCount).toBe(0);
+    expect(state.skipCount).toBe(0);
+    expect(state.banishCount).toBe(0);
     expect(state.banishedIds).toEqual([]);
   });
 
@@ -175,6 +176,7 @@ describe('useGameStore', () => {
   });
 
   it('skip resumes playing and decrements count', () => {
+    useMetaStore.setState({ upgrades: { extra_skip: 3 } });
     useGameStore.getState().startRun();
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);
@@ -185,6 +187,7 @@ describe('useGameStore', () => {
   });
 
   it('reroll generates new options and decrements count', () => {
+    useMetaStore.setState({ upgrades: { extra_reroll: 3 } });
     useGameStore.getState().startRun();
     const xpNeeded = xpForLevel(1);
     useGameStore.getState().addXP(xpNeeded);
@@ -195,10 +198,19 @@ describe('useGameStore', () => {
   });
 
   it('banish adds ID to banished list', () => {
+    useMetaStore.setState({ upgrades: { extra_banish: 3 } });
     useGameStore.getState().startRun();
     useGameStore.getState().banish('neon_whip');
     expect(useGameStore.getState().banishedIds).toContain('neon_whip');
     expect(useGameStore.getState().banishCount).toBe(2);
+  });
+
+  it('reroll/skip/banish start at 0 without shop upgrades', () => {
+    useGameStore.getState().startRun();
+    const state = useGameStore.getState();
+    expect(state.rerollCount).toBe(0);
+    expect(state.skipCount).toBe(0);
+    expect(state.banishCount).toBe(0);
   });
 
   it('startRun initializes creditsEarned and reviveCount', () => {

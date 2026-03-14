@@ -45,13 +45,13 @@ describe('computePlayerStats', () => {
 
   it('applies shop upgrades with no items', () => {
     const stats = computePlayerStats([], { power_core: 3 });
-    expect(stats.might).toBe(15); // 5 * 3
+    expect(stats.might).toBe(60); // 20 * 3
   });
 
   it('stacks shop upgrades with item bonuses', () => {
     const items: ItemInstance[] = [{ definitionId: 'energy_cell', level: 2 }];
     const stats = computePlayerStats(items, { power_core: 2 });
-    expect(stats.might).toBe(30); // item: 10*2=20, shop: 5*2=10
+    expect(stats.might).toBe(60); // item: 10*2=20, shop: 20*2=40
   });
 
   it('ignores special upgrades (null statKey)', () => {
@@ -77,7 +77,7 @@ describe('computePlayerStats', () => {
     const items: ItemInstance[] = [{ definitionId: 'energy_cell', level: 2 }];
     const charStats = { might: 10 };
     const stats = computePlayerStats(items, { power_core: 1 }, charStats, 2);
-    expect(stats.might).toBe(39);
+    expect(stats.might).toBe(54); // char: 10, items: 20, charUpgrade: 4, shop: 20
     expect(stats.moveSpeed).toBe(4);
   });
 

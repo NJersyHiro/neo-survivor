@@ -7,6 +7,7 @@ import { ALL_ITEM_IDS, ITEMS } from '../data/items';
 import { STAGES, ALL_STAGE_IDS } from '../data/stages';
 import { SaveManager } from '../game/SaveManager';
 import ShopScreen from './ShopScreen';
+import CodexScreen from './CodexScreen';
 import { SoundManager } from '../game/SoundManager';
 
 function formatTime(seconds: number): string {
@@ -14,11 +15,6 @@ function formatTime(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
-
-const scrollStyle: React.CSSProperties = {
-  flex: 1, width: '100%', overflow: 'auto',
-  WebkitOverflowScrolling: 'touch' as const,
-};
 
 export default function MainMenu() {
   const phase = useGameStore((s) => s.phase);
@@ -31,20 +27,21 @@ export default function MainMenu() {
   const unlockedWeaponIds = useMetaStore((s) => s.unlockedWeaponIds);
   const unlockedItemIds = useMetaStore((s) => s.unlockedItemIds);
   const [tab, setTab] = useState<'play' | 'shop' | 'achievements'>('play');
+  const [showCodex, setShowCodex] = useState(false);
   const [hyperEnabled, setHyperEnabled] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     characters: true, weapons: false, items: false, stages: false,
   });
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
-  // Swipe to change tabs
+  // Swipe to change tabs — only on tab bar, not on scrollable content
   const TABS = ['play', 'shop', 'achievements'] as const;
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const onSwipeStart = useCallback((e: React.TouchEvent) => {
+  const onTabSwipeStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0];
     if (t) swipeStart.current = { x: t.clientX, y: t.clientY };
   }, []);
-  const onSwipeEnd = useCallback((e: React.TouchEvent) => {
+  const onTabSwipeEnd = useCallback((e: React.TouchEvent) => {
     if (!swipeStart.current) return;
     const t = e.changedTouches[0];
     if (!t) return;
@@ -66,22 +63,61 @@ export default function MainMenu() {
 
   if (phase !== 'menu') return null;
 
+  // Show codex as full overlay when open
+  if (showCodex) {
+    return (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+        zIndex: 300, display: 'flex', flexDirection: 'column',
+        background: '#000', fontFamily: "'Courier New', monospace",
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px', marginTop: 'calc(var(--sat) + 8px)',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={() => { SoundManager.buttonClick(); setShowCodex(false); }}
+            style={{
+              background: 'transparent', border: '1px solid #666',
+              color: '#888', borderRadius: 4, padding: '6px 12px',
+              fontSize: 12, fontWeight: 'bold', fontFamily: "'Courier New', monospace",
+              cursor: 'pointer',
+            }}
+          >
+            BACK
+          </button>
+          <div style={{
+            color: '#00ffff', fontSize: 18, fontWeight: 'bold',
+            textShadow: '0 0 10px #00ffff',
+          }}>
+            CODEX
+          </div>
+          <div style={{ width: 60 }} />
+        </div>
+        <CodexScreen />
+      </div>
+    );
+  }
+
   return (
     <div
-      onTouchStart={onSwipeStart}
-      onTouchEnd={onSwipeEnd}
+      onTouchStart={onTabSwipeStart}
+      onTouchEnd={onTabSwipeEnd}
       style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center',
-      background: '#000', fontFamily: "'Courier New', monospace",
-      overflow: 'hidden',
-    }}>
+        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+        zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        background: '#000', fontFamily: "'Courier New', monospace",
+        overflow: 'hidden',
+      }}
+    >
       {/* Tabs */}
       <div style={{
         display: 'flex', gap: 0, marginTop: 'calc(var(--sat) + 16px)',
         flexShrink: 0,
       }}>
-        {(['play', 'shop', 'achievements'] as const).map((t) => (
+        {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)} style={{
             background: 'transparent', border: 'none',
             borderBottom: tab === t ? '2px solid #00ffff' : '2px solid transparent',
@@ -97,7 +133,8 @@ export default function MainMenu() {
       {/* PLAY Tab */}
       {tab === 'play' && (
         <div style={{
-          ...scrollStyle,
+          flex: 1, width: '100%', overflow: 'auto',
+          WebkitOverflowScrolling: 'touch' as const,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           gap: 20, padding: '20px 16px',
         }}>
@@ -265,6 +302,7 @@ export default function MainMenu() {
                   perCharacterStats: { ...(s.perCharacterStats ?? {}) },
                   perWeaponStats: { ...(s.perWeaponStats ?? {}) },
                   perStageStats: { ...(s.perStageStats ?? {}) },
+                  encounteredEnemyIds: [...(s.encounteredEnemyIds ?? [])],
                 });
               }}
               style={{
@@ -313,10 +351,27 @@ export default function MainMenu() {
       {/* ACHIEVEMENTS Tab */}
       {tab === 'achievements' && (
         <div style={{
-          ...scrollStyle,
+          flex: 1, width: '100%', overflow: 'auto',
+          WebkitOverflowScrolling: 'touch' as const,
           padding: '24px 16px', paddingBottom: 'calc(var(--sab) + 24px)',
           maxWidth: 500,
         }}>
+          {/* CODEX BUTTON */}
+          <button
+            onClick={() => { SoundManager.buttonClick(); setShowCodex(true); }}
+            style={{
+              width: '100%', background: '#0a0a2e',
+              border: '2px solid #00ffff', borderRadius: 8,
+              padding: '14px 16px', marginBottom: 20,
+              color: '#00ffff', fontSize: 16, fontWeight: 'bold',
+              fontFamily: "'Courier New', monospace", cursor: 'pointer',
+              textShadow: '0 0 8px #00ffff',
+              boxShadow: '0 0 12px rgba(0, 255, 255, 0.2)',
+            }}
+          >
+            CODEX
+          </button>
+
           {/* CHARACTER UNLOCKS header */}
           <div onClick={() => toggleSection('characters')} style={{
             color: '#ffaa00', fontSize: 16, fontWeight: 'bold', marginBottom: 8,

@@ -79,6 +79,7 @@ export default function Enemies() {
             newEnemy.shieldHp = enemyDef.shieldHp;
           }
           store.spawnEnemy(newEnemy);
+          useMetaStore.getState().addEncounteredEnemy(enemyId);
         }
       }
     }
@@ -106,6 +107,7 @@ export default function Enemies() {
             maxHp: bossHp,
           };
           store.spawnEnemy(bossEnemy);
+          useMetaStore.getState().addEncounteredEnemy(bossWaveEntry.bossId);
           SoundManager.bossSpawn();
         }
       }
@@ -128,6 +130,7 @@ export default function Enemies() {
           hp: reaperDef.hp,
           maxHp: reaperDef.hp,
         });
+        useMetaStore.getState().addEncounteredEnemy('system_purge');
       } else {
         // Additional System Purges every 60s after 1800
         reaperTimerRef.current += clampedDelta;

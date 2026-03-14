@@ -184,9 +184,9 @@ export const useGameStore = create<GameState>()((set) => ({
   xpGems: [],
   chests: [],
   levelUpOptions: [],
-  rerollCount: 3,
-  skipCount: 3,
-  banishCount: 3,
+  rerollCount: 0,
+  skipCount: 0,
+  banishCount: 0,
   banishedIds: [],
   creditsEarned: 0,
   reviveCount: 0,
@@ -214,9 +214,9 @@ export const useGameStore = create<GameState>()((set) => ({
       xpGems: [],
       chests: [],
       levelUpOptions: [],
-      rerollCount: 3,
-      skipCount: 3,
-      banishCount: 3,
+      rerollCount: 0,
+      skipCount: 0,
+      banishCount: 0,
       banishedIds: [],
       creditsEarned: 0,
       reviveCount: 0,
@@ -236,6 +236,8 @@ export const useGameStore = create<GameState>()((set) => ({
     const meta = useMetaStore.getState();
     const hyperModeEnabled = (meta as any).hyperModeActive && meta.hyperModeStageIds.includes(meta.selectedStageId);
     const extraRerolls = meta.getUpgradeLevel('extra_reroll');
+    const extraSkips = meta.getUpgradeLevel('extra_skip');
+    const extraBanishes = meta.getUpgradeLevel('extra_banish');
     const revives = meta.getUpgradeLevel('revival_kit');
     const characterId = meta.selectedCharacterId;
     const characterDef = CHARACTERS[characterId];
@@ -261,9 +263,9 @@ export const useGameStore = create<GameState>()((set) => ({
       xpGems: [],
       chests: [],
       levelUpOptions: [],
-      rerollCount: 3 + extraRerolls,
-      skipCount: 3,
-      banishCount: 3,
+      rerollCount: extraRerolls,
+      skipCount: extraSkips,
+      banishCount: extraBanishes,
       banishedIds: [],
       creditsEarned: 0,
       reviveCount: revives,
