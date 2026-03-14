@@ -283,10 +283,9 @@ describe('useGameStore', () => {
     useGameStore.getState().startRun();
     const state = useGameStore.getState();
     // Tank: baseMaxHp = 130 + 2*2 = 134
-    // stats.maxHp includes character baseStats.maxHp (130) = 130%
-    // effectiveMaxHp = 134 * (1 + 130/100) = 308 (rounded)
-    expect(state.player.maxHp).toBe(308);
-    expect(state.player.hp).toBe(308);
+    // No shop upgrades, so effectiveMaxHp = 134
+    expect(state.player.maxHp).toBe(134);
+    expect(state.player.hp).toBe(134);
   });
 
   it('startRun initializes per-run counters to zero', () => {

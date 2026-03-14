@@ -242,13 +242,9 @@ export const useGameStore = create<GameState>()((set) => ({
     const characterLevel = meta.characterLevels[characterId] ?? 0;
     const baseMaxHp = (characterDef?.baseStats.maxHp ?? 100) + characterLevel * 2;
     const startingWeaponId = characterDef?.startingWeaponId ?? STARTING_WEAPON_ID;
-    // HUD computes: maxHp * (1 + getComputedStats().maxHp / 100)
-    // getComputedStats includes character baseStats, characterLevel, items, and shop upgrades
-    // At start, items are empty, so only shop + character contribute
-    // We store baseMaxHp in player.maxHp, and HUD applies the multiplier
-    // So hp should equal what HUD will show as effective max
-    const startStats = computePlayerStats([], meta.upgrades, characterDef?.baseStats, characterLevel);
-    const effectiveMaxHp = Math.round(baseMaxHp * (1 + startStats.maxHp / 100));
+    // Only apply shop upgrade % bonus to base HP (character maxHp is already the base value)
+    const shopStats = computePlayerStats([], meta.upgrades);
+    const effectiveMaxHp = Math.round(baseMaxHp * (1 + shopStats.maxHp / 100));
     set({
       phase: 'playing',
       elapsedTime: 0,
