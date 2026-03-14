@@ -3,6 +3,7 @@ import Stage from './components/Stage';
 import Camera from './components/Camera';
 import Player from './components/Player';
 import Enemies from './components/Enemies';
+import EnemyProjectiles from './components/EnemyProjectiles';
 import Projectiles from './components/Projectiles';
 import XPGemRenderer from './components/XPGems';
 import Chests from './components/Chests';
@@ -22,6 +23,7 @@ function GameScene() {
       <Stage />
       <Player />
       <Enemies />
+      <EnemyProjectiles />
       <Projectiles />
       <XPGemRenderer />
       <Chests />
