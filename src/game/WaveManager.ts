@@ -1,29 +1,74 @@
-import type { Vec3 } from '../types';
+import type { Vec3, SpawnPattern, WaveEntry } from '../types';
+import { WAVE_SCHEDULES } from '../data/waveSchedules';
 
-const BASE_SPAWN_COUNT = 3;
-const MAX_SPAWN_COUNT = 15;
-const SPAWN_DISTANCE = 18;
 const STAGE_HALF = 24;
+const MIN_SPAWN_DIST = 18;
+const MAX_SPAWN_DIST = 23;
 
-export function getSpawnCount(elapsedTime: number): number {
-  const bonus = Math.floor(elapsedTime / 30);
-  return Math.min(BASE_SPAWN_COUNT + bonus, MAX_SPAWN_COUNT);
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
 }
 
-export function getSpawnPosition(playerPos: Vec3): Vec3 {
-  const angle = Math.random() * Math.PI * 2;
-  const dist = SPAWN_DISTANCE + Math.random() * 5;
-  let x = playerPos.x + Math.cos(angle) * dist;
-  let z = playerPos.z + Math.sin(angle) * dist;
-  x = Math.max(-STAGE_HALF, Math.min(STAGE_HALF, x));
-  z = Math.max(-STAGE_HALF, Math.min(STAGE_HALF, z));
-  return { x, y: 0, z };
+export function getWaveEntry(stageId: string, elapsedTime: number): WaveEntry {
+  const schedule = WAVE_SCHEDULES[stageId] ?? WAVE_SCHEDULES['neon_district'];
+  if (!schedule) {
+    return {
+      enemies: [{ id: 'nd_drone', weight: 1 }],
+      spawnInterval: 2.0,
+      maxSpawnCount: 3,
+      hpMultiplier: 1.0,
+      spawnPattern: 'ring',
+    };
+  }
+  const minute = Math.min(Math.floor(elapsedTime / 60), schedule.waves.length - 1);
+  return schedule.waves[minute]!;
 }
 
-export function getEnemyTypeForTime(elapsedTime: number): string {
-  if (elapsedTime < 60) return 'drone';
-  if (elapsedTime < 180) return Math.random() < 0.7 ? 'drone' : 'speeder';
-  return Math.random() < 0.5 ? 'drone' : Math.random() < 0.5 ? 'speeder' : 'tank';
-}
+export function getSpawnPositions(pattern: SpawnPattern, playerPos: Vec3, count: number): Vec3[] {
+  const positions: Vec3[] = [];
 
-export const SPAWN_INTERVAL = 2.0;
+  if (pattern === 'ring') {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+      const dist = MIN_SPAWN_DIST + Math.random() * (MAX_SPAWN_DIST - MIN_SPAWN_DIST);
+      positions.push({
+        x: clamp(playerPos.x + Math.cos(angle) * dist, -STAGE_HALF, STAGE_HALF),
+        y: 0,
+        z: clamp(playerPos.z + Math.sin(angle) * dist, -STAGE_HALF, STAGE_HALF),
+      });
+    }
+  } else if (pattern === 'cluster') {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = MIN_SPAWN_DIST + Math.random() * (MAX_SPAWN_DIST - MIN_SPAWN_DIST);
+    const centerX = playerPos.x + Math.cos(angle) * dist;
+    const centerZ = playerPos.z + Math.sin(angle) * dist;
+    for (let i = 0; i < count; i++) {
+      const offsetAngle = Math.random() * Math.PI * 2;
+      const offsetDist = Math.random() * 2;
+      positions.push({
+        x: clamp(centerX + Math.cos(offsetAngle) * offsetDist, -STAGE_HALF, STAGE_HALF),
+        y: 0,
+        z: clamp(centerZ + Math.sin(offsetAngle) * offsetDist, -STAGE_HALF, STAGE_HALF),
+      });
+    }
+  } else {
+    // line pattern
+    const angle = Math.random() * Math.PI * 2;
+    const dist = MIN_SPAWN_DIST + Math.random() * (MAX_SPAWN_DIST - MIN_SPAWN_DIST);
+    const centerX = playerPos.x + Math.cos(angle) * dist;
+    const centerZ = playerPos.z + Math.sin(angle) * dist;
+    const perpX = -Math.sin(angle);
+    const perpZ = Math.cos(angle);
+    const startOffset = -((count - 1) * 1.5) / 2;
+    for (let i = 0; i < count; i++) {
+      const offset = startOffset + i * 1.5;
+      positions.push({
+        x: clamp(centerX + perpX * offset, -STAGE_HALF, STAGE_HALF),
+        y: 0,
+        z: clamp(centerZ + perpZ * offset, -STAGE_HALF, STAGE_HALF),
+      });
+    }
+  }
+
+  return positions;
+}

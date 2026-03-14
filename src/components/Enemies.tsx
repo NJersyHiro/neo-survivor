@@ -3,8 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import { ENEMIES } from '../data/enemies';
-import { getSpawnCount, getSpawnPosition, getEnemyTypeForTime, SPAWN_INTERVAL } from '../game/WaveManager';
-import { shouldSpawnBoss } from '../game/BossManager';
+import { getWaveEntry, getSpawnPositions } from '../game/WaveManager';
 import { generateId, distance, directionTo } from '../utils/math';
 import { SoundManager } from '../game/SoundManager';
 
@@ -18,7 +17,6 @@ const tmpVec = new THREE.Vector3();
 export default function Enemies() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const spawnTimerRef = useRef(0);
-  const prevTimeRef = useRef(0);
   const lastHitSoundRef = useRef(0);
 
   useFrame((_state, delta) => {
@@ -28,47 +26,52 @@ export default function Enemies() {
     const clampedDelta = Math.min(delta, 0.1);
 
     // --- Spawn logic ---
+    const waveEntry = getWaveEntry('neon_district', store.elapsedTime);
     spawnTimerRef.current += clampedDelta;
-    if (spawnTimerRef.current >= SPAWN_INTERVAL) {
-      spawnTimerRef.current -= SPAWN_INTERVAL;
-      const count = getSpawnCount(store.elapsedTime);
-      for (let i = 0; i < count; i++) {
-        if (store.enemies.length >= MAX_INSTANCES) break;
-        const pos = getSpawnPosition(store.player.position);
-        const enemyType = getEnemyTypeForTime(store.elapsedTime);
-        const enemyDef = ENEMIES[enemyType];
-        if (!enemyDef) continue;
-        const hpScale = 1 + store.elapsedTime / 120;
-        const hp = Math.floor(enemyDef.hp * hpScale);
-        store.spawnEnemy({
-          id: generateId(),
-          definitionId: enemyType,
-          position: pos,
-          hp,
-          maxHp: hp,
-        });
-        // Re-read store since spawnEnemy mutates
-        const updated = useGameStore.getState();
-        if (updated.enemies.length >= MAX_INSTANCES) break;
+    if (spawnTimerRef.current >= waveEntry.spawnInterval) {
+      spawnTimerRef.current -= waveEntry.spawnInterval;
+      const count = Math.min(waveEntry.maxSpawnCount, MAX_INSTANCES - store.enemies.length);
+      if (count > 0) {
+        const positions = getSpawnPositions(waveEntry.spawnPattern, store.player.position, count);
+        // pick enemy id from weighted list
+        const totalWeight = waveEntry.enemies.reduce((s, e) => s + e.weight, 0);
+        for (let i = 0; i < count; i++) {
+          if (store.enemies.length >= MAX_INSTANCES) break;
+          let roll = Math.random() * totalWeight;
+          let enemyId = waveEntry.enemies[0]!.id;
+          for (const entry of waveEntry.enemies) {
+            roll -= entry.weight;
+            if (roll <= 0) { enemyId = entry.id; break; }
+          }
+          const enemyDef = ENEMIES[enemyId];
+          if (!enemyDef) continue;
+          const hp = Math.floor(enemyDef.hp * waveEntry.hpMultiplier);
+          store.spawnEnemy({
+            id: generateId(),
+            definitionId: enemyId,
+            position: positions[i]!,
+            hp,
+            maxHp: hp,
+          });
+        }
       }
-    }
 
-    // --- Boss spawn logic ---
-    if (shouldSpawnBoss(store.elapsedTime, prevTimeRef.current)) {
-      const bossdef = ENEMIES.sentinel;
-      if (bossdef) {
-        const pos = getSpawnPosition(store.player.position);
-        store.spawnEnemy({
-          id: generateId(),
-          definitionId: 'sentinel',
-          position: pos,
-          hp: bossdef.hp,
-          maxHp: bossdef.hp,
-        });
-        SoundManager.bossSpawn();
+      // --- Boss spawn logic ---
+      if (waveEntry.bossId) {
+        const bossdef = ENEMIES[waveEntry.bossId];
+        if (bossdef) {
+          const [bossPos] = getSpawnPositions('ring', store.player.position, 1);
+          store.spawnEnemy({
+            id: generateId(),
+            definitionId: waveEntry.bossId,
+            position: bossPos!,
+            hp: Math.floor(bossdef.hp * waveEntry.hpMultiplier),
+            maxHp: Math.floor(bossdef.hp * waveEntry.hpMultiplier),
+          });
+          SoundManager.bossSpawn();
+        }
       }
     }
-    prevTimeRef.current = store.elapsedTime;
 
     // --- Movement + contact damage ---
     const { enemies, player } = useGameStore.getState();
